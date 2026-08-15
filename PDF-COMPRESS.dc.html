@@ -57,7 +57,7 @@
       <div style="padding:10px 14px; font-size:13px; color:{{ sourceNoteColor }}; background:{{ sourceNoteBg }}; border:1px solid {{ sourceNoteBorder }}; margin-bottom:6px; line-height:1.6;">
        {{ sourceNote }}
        <sc-if value="{{ showFlattenerHint }}" hint-placeholder-val="{{ false }}">
-         <div style="margin-top:6px; color:#8a2c2c;">To flatten (rasterize) this high-quality vector PDF at 600 DPI instead, use <a href="./PDF-FLATTENER.dc.html" style="color:#8a2c2c; font-weight:700; text-decoration:underline;">PDF-FLATTENER</a>.</div>
+         <div style="margin-top:6px; color:#8a2c2c;">To flatten (rasterize) this vector PDF at 1152 DPI instead, use <a href="./PDF-FLATTENER.dc.html" style="color:#8a2c2c; font-weight:700; text-decoration:underline;">PDF-FLATTENER</a>.</div>
        </sc-if>
      </div>
     </sc-if>
@@ -100,7 +100,7 @@ class Component extends DCLogic {
   state = {
     fileName: '',
     pageCount: 0,
-    dpi: '150',
+    dpi: '144',
     sourceDpi: null,
     generating: false,
     progressPercent: 0,
@@ -253,13 +253,11 @@ class Component extends DCLogic {
       // Detect source DPI in the background
       this._detectSourceDpi(pdf).then((dpi) => {
         if (dpi !== null) {
-          // Auto-select a sensible output DPI below the source
-          let auto = '150';
-          if (dpi <= 100) auto = '72';
-          else if (dpi <= 160) auto = '100';
-          else if (dpi <= 220) auto = '150';
-          else if (dpi <= 320) auto = '200';
-          else auto = '300';
+          // Auto-select one meaningful step below the source
+          let auto = '72';
+          if (dpi > 400) auto = '288';
+          else if (dpi > 200) auto = '144';
+          else auto = '72';
           this.setState({ sourceDpi: dpi, dpi: auto });
         } else {
           this.setState({ sourceDpi: 0 }); // 0 = vector / unknown
@@ -313,7 +311,7 @@ class Component extends DCLogic {
         await page.render({ canvasContext: ctx, viewport: vp }).promise;
 
         // More aggressive JPEG quality for smaller files
-        const quality = outputDpi <= 100 ? 0.75 : outputDpi <= 150 ? 0.82 : 0.88;
+        const quality = outputDpi <= 72 ? 0.72 : outputDpi <= 144 ? 0.82 : 0.88;
         const imgData = canvas.toDataURL('image/jpeg', quality);
 
         if (i === 1) {
@@ -391,11 +389,10 @@ class Component extends DCLogic {
     });
 
     const DPI_OPTIONS = [
-      { val: '72',  label: '72 DPI — smallest' },
-      { val: '100', label: '100 DPI — small' },
-      { val: '150', label: '150 DPI — medium' },
-      { val: '200', label: '200 DPI — good' },
-      { val: '300', label: '300 DPI — near-print' },
+      { val: '72',  label: '72 DPI (screen)' },
+      { val: '144', label: '144 DPI (retina)' },
+      { val: '288', label: '288 DPI (print quality)' },
+      { val: '576', label: '576 DPI (archival)' },
     ];
     const dpiOptions = DPI_OPTIONS.map((o) => ({
       label: o.label,
