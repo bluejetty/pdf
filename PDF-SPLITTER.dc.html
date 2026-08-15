@@ -68,8 +68,10 @@
       <div style="display:flex; align-items:{{ resolutionAlign }}; gap:18px; padding:14px 18px; border:1px solid rgba(29,31,32,0.16); margin-top:0; flex-wrap:wrap; flex-direction:{{ resolutionDirection }}; opacity:0.5; pointer-events:none;">
         <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(29,31,32,0.6);">Resolution</div>
         <div style="display:inline-flex; overflow:hidden; border:1px solid rgba(29,31,32,0.16);">
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; color:#1d1f20;">150 DPI (smaller file)</label>
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); background:#5980a6; color:#f2f2f3;">300 DPI (print quality)</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; color:#1d1f20;">72 DPI (screen)</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); color:#1d1f20;">144 DPI (retina)</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); background:#5980a6; color:#f2f2f3;">288 DPI (print quality)</label>
+          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); color:#1d1f20;">576 DPI (archival)</label>
         </div>
         <button style="border:1px solid #5980a6; background:#5980a6; color:#f2f2f3; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:14px; letter-spacing:0.02em; padding:9px 20px; margin-left:{{ resolutionButtonMarginLeft }};">PDF-FLATTEN / SAVE</button>
       </div>
@@ -144,8 +146,12 @@
       <sc-if value="{{ generating }}" hint-placeholder-val="{{ false }}">
         <div style="font-size:14px; color:rgba(29,31,32,0.6); margin-top:10px;">{{ progressText }}</div>
       </sc-if>
-      <sc-if value="{{ downloadUrl }}" hint-placeholder-val="{{ false }}">
-        <div style="margin-top:10px;"><a href="{{ downloadUrl }}" download="{{ outputName }}" style="font-size:14px; color:#5980a6; font-weight:600; text-decoration:none;">Download {{ outputName }}</a></div>
+      <sc-if value="{{ hasDownloads }}" hint-placeholder-val="{{ false }}">
+        <div style="text-align:center; margin-top:10px; display:flex; flex-direction:column; gap:6px; align-items:center;">
+          <sc-for list="{{ downloadFiles }}" as="dlFile" hint-placeholder-count="1">
+            <a href="{{ dlFile.url }}" download="{{ dlFile.name }}" style="font-size:14px; color:#5980a6; font-weight:600; text-decoration:none;">Download {{ dlFile.name }}</a>
+          </sc-for>
+        </div>
       </sc-if>
     </sc-if>
 
@@ -165,20 +171,21 @@ class Component extends DCLogic {
     error: null,
     generating: false,
     progressText: '',
-    downloadUrl: null,
-    outputName: '',
+    downloadFiles: [],
     dragOver: false,
     urlInput: '',
     order: [],
     splitAfter: [],
-    dpi: '300',
+    dpi: '288',
     isMobile: typeof window !== 'undefined' && window.innerWidth < 640,
   };
 
   fileInputRef = React.createRef();
   originalBytes = null;
-  setDpi150 = () => this.setState({ dpi: '150' });
-  setDpi300 = () => this.setState({ dpi: '300' });
+  setDpi72  = () => this.setState({ dpi: '72' });
+  setDpi144 = () => this.setState({ dpi: '144' });
+  setDpi288 = () => this.setState({ dpi: '288' });
+  setDpi576 = () => this.setState({ dpi: '576' });
 
   componentDidMount() {
     if (window.pdfjsLib) {
@@ -273,10 +280,10 @@ class Component extends DCLogic {
 
   reset = () => {
     this.originalBytes = null;
-    if (this.state.downloadUrl) URL.revokeObjectURL(this.state.downloadUrl);
+    this.state.downloadFiles.forEach((f) => URL.revokeObjectURL(f.url));
     this.setState({
       fileName: null, baseName: '', pages: [], loading: false, error: null,
-      generating: false, progressText: '', downloadUrl: null, outputName: '',
+      generating: false, progressText: '', downloadFiles: [],
       order: [], splitAfter: [],
     });
     if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('splitter');
@@ -369,25 +376,31 @@ class Component extends DCLogic {
   async generate() {
     const { baseName } = this.state;
     if (!this.originalBytes) return;
-    if (this.state.downloadUrl) URL.revokeObjectURL(this.state.downloadUrl);
+    this.state.downloadFiles.forEach((f) => URL.revokeObjectURL(f.url));
 
     const groups = this.computeGroups();
     if (!groups || groups.length === 0) { alert('No pages left to export — undo a delete or add pages.'); return; }
 
-    this.setState({ generating: true, progressText: groups.length > 1 ? `0 / ${groups.length}` : 'Working…', downloadUrl: null });
+    this.setState({ generating: true, progressText: groups.length > 1 ? `0 / ${groups.length}` : 'Working…', downloadFiles: [] });
     try {
       const { PDFDocument } = window.PDFLib;
       const srcDoc = await PDFDocument.load(this.originalBytes.slice(0));
       const padWidth = Math.max(2, String(groups.length).length);
 
-      if (groups.length === 1) {
-        const outDoc = await PDFDocument.create();
-        const copied = await outDoc.copyPages(srcDoc, groups[0].map((i) => i - 1));
-        copied.forEach((p) => outDoc.addPage(p));
-        const bytes = await outDoc.save();
-        const blob = new Blob([bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        this.setState({ generating: false, progressText: '', downloadUrl: url, outputName: `${baseName}.pdf` });
+      if (groups.length <= 2) {
+        const downloadFiles = [];
+        for (let i = 0; i < groups.length; i++) {
+          const outDoc = await PDFDocument.create();
+          const copied = await outDoc.copyPages(srcDoc, groups[i].map((idx) => idx - 1));
+          copied.forEach((p) => outDoc.addPage(p));
+          const bytes = await outDoc.save();
+          const blob = new Blob([bytes], { type: 'application/pdf' });
+          const url = URL.createObjectURL(blob);
+          const name = groups.length === 1 ? `${baseName}.pdf` : `${baseName}-${String(i + 1).padStart(padWidth, '0')}.pdf`;
+          downloadFiles.push({ url, name });
+          if (groups.length > 1) this.setState({ progressText: `${i + 1} / ${groups.length}` });
+        }
+        this.setState({ generating: false, progressText: '', downloadFiles });
         return;
       }
 
@@ -403,7 +416,7 @@ class Component extends DCLogic {
       }
       const zipBlob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(zipBlob);
-      this.setState({ generating: false, progressText: '', downloadUrl: url, outputName: `${baseName}.zip` });
+      this.setState({ generating: false, progressText: '', downloadFiles: [{ url, name: `${baseName}.zip` }] });
     } catch (err) {
       this.setState({ generating: false, progressText: '', error: 'Could not build PDFs: ' + err.message });
     }
@@ -412,7 +425,7 @@ class Component extends DCLogic {
   onMobileNav = (e) => { const v = e.target.value; if (v) window.location.href = v; };
 
   renderVals() {
-    const { fileName, pages, loading, error, generating, progressText, downloadUrl, outputName, dragOver, order, splitAfter, isMobile, dpi } = this.state;
+    const { fileName, pages, loading, error, generating, progressText, downloadFiles, dragOver, order, splitAfter, isMobile, dpi } = this.state;
     const thumbsLimited = pages.length > 40;
     const totalPagesCount = pages.length;
     const accent = '#5980a6';
@@ -472,7 +485,7 @@ class Component extends DCLogic {
       isMobile,
       isDesktopHeader: !isMobile,
       onMobileNav: this.onMobileNav,
-      fileName, loading, error, generating, progressText, downloadUrl, outputName, thumbsLimited, totalPagesCount,
+      fileName, loading, error, generating, progressText, downloadFiles, hasDownloads: downloadFiles.length > 0, thumbsLimited, totalPagesCount,
       noFile: !fileName,
       outerPadding: isMobile ? '10px 14px 28px' : '18px 24px 56px',
       resolutionDirection: isMobile ? 'column' : 'row',
@@ -508,8 +521,10 @@ class Component extends DCLogic {
       renderItems,
       generateDisabled: disabled,
       dpiOptions: [
-        { label: '150 DPI (smaller file)', checked: dpi === '150', onSelect: this.setDpi150 },
-        { label: '300 DPI (print quality)', checked: dpi === '300', onSelect: this.setDpi300 },
+        { label: '72 DPI (screen)',        checked: dpi === '72',  onSelect: this.setDpi72  },
+        { label: '144 DPI (retina)',       checked: dpi === '144', onSelect: this.setDpi144 },
+        { label: '288 DPI (print quality)',checked: dpi === '288', onSelect: this.setDpi288 },
+        { label: '576 DPI (archival)',     checked: dpi === '576', onSelect: this.setDpi576 },
       ].map((o) => ({ ...o, bg: o.checked ? accent : 'transparent', color: o.checked ? '#f2f2f3' : '#1d1f20' })),
       generateCursor: disabled ? 'not-allowed' : 'pointer',
       generateOpacity: disabled ? 0.45 : 1,
