@@ -85,10 +85,10 @@
           <button onClick="{{ clearPage }}" style="border:1px solid rgba(29,31,32,0.22); background:#fff; padding:4px 14px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:12px; color:rgba(29,31,32,0.55); text-transform:uppercase; cursor:pointer; letter-spacing:0.05em;">CLEAR</button>
         </div>
         <div style="display:flex; flex-direction:column; gap:5px;">
-          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#3d6b4f; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>1 — VECTOR PDF</b> · Live vector, text and/or form fields.</div></div>
-          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#7a5c1e; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>2 — MIXED</b> · Raster and live content on the same page or across pages.</div></div>
-          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#2c455d; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>3 — OCR / SEARCHABLE SCAN</b> · Raster with invisible OCR text layer.</div></div>
-          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#8a2c2c; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>4 — FULL FLAT</b> · Pure raster, nothing selectable.</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#3d6b4f; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>1 — VECTOR</b> · The ideal. Pure CAD export, fully measurable, smallest file.</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#7a5c1e; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>2 — HYBRID</b> · The reality. Most construction PDFs. Vector geometry + embedded scale.</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#2c455d; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>3 — OCR</b> · The fix. Scanned but at least searchable. No vector geometry.</div></div>
+          <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#8a2c2c; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>4 — IMAGE BASED</b> · The basement. Just a photo. Manual scale calibration only.</div></div>
         </div>
       </div>
     </sc-if>
@@ -182,12 +182,12 @@
 <script type="text/x-dc" data-dc-script>
 const STATUS = { NOT_FLAT: 1, MIXED: 2, OCR_FLAT: 3, FULL_FLAT: 4 };
 const STATUS_INFO = {
-  [STATUS.NOT_FLAT]:  { label:'STATUS 1 — VECTOR PDF',            bg:'#3d6b4f', color:'#f2f2f3', desc:'Fully live content — vector text, shapes, and/or form fields. Fully editable and selectable.' },
-  [STATUS.MIXED]:     { label:'STATUS 2 — MIXED',                 bg:'#7a5c1e', color:'#f2f2f3', desc:'Mix of flat raster and live vector content. Some pages or elements are rasterized; others contain live text or forms.' },
-  [STATUS.OCR_FLAT]:  { label:'STATUS 3 — OCR / SEARCHABLE SCAN', bg:'#2c455d', color:'#f2f2f3', desc:'Visually raster with an invisible OCR text layer. Text is searchable and copyable, but visuals are pixel-based.' },
-  [STATUS.FULL_FLAT]: { label:'STATUS 4 — FULL FLAT',             bg:'#8a2c2c', color:'#f2f2f3', desc:'Fully rasterized — pure images. No text layer, no vector data, nothing selectable or searchable.' },
+  [STATUS.NOT_FLAT]:  { label:'STATUS 1 — VECTOR',      bg:'#3d6b4f', color:'#f2f2f3', desc:'The ideal. Pure CAD export, fully measurable, smallest file. Fully live — vector text, shapes, and/or form fields.' },
+  [STATUS.MIXED]:     { label:'STATUS 2 — HYBRID',      bg:'#7a5c1e', color:'#f2f2f3', desc:'The reality. Most construction PDFs are this. Still has vector geometry + embedded scale alongside rasterized content.' },
+  [STATUS.OCR_FLAT]:  { label:'STATUS 3 — OCR',         bg:'#2c455d', color:'#f2f2f3', desc:'The fix. Scanned but at least searchable. Text is copyable via OCR layer, but no vector geometry.' },
+  [STATUS.FULL_FLAT]: { label:'STATUS 4 — IMAGE BASED', bg:'#8a2c2c', color:'#f2f2f3', desc:'The basement. Just a photo. No text layer, no vector data. Manual scale calibration only.' },
 };
-const PAGE_LABEL = { flat:'FLAT', ocr:'OCR/SRCH', live:'VECTOR', mixed:'MIXED' };
+const PAGE_LABEL = { flat:'FLAT', ocr:'OCR/SRCH', live:'VECTOR', mixed:'HYBRID' };
 const PAGE_COLOR = { flat:'#8a2c2c', ocr:'#2c455d', live:'#3d6b4f', mixed:'#7a5c1e' };
 
 const KNOWN_SIZES = [
