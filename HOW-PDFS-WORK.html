@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>How PDFs Work — A Guide for Construction & Design</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      line-height: 1.7;
+      padding: 20px;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 48px;
+    }
+    h1 {
+      color: #173a59;
+      font-size: 2.2rem;
+      margin-bottom: 8px;
+      border-bottom: 3px solid #1e90ff;
+      padding-bottom: 16px;
+    }
+    h2 {
+      color: #2154b4;
+      font-size: 1.4rem;
+      margin-top: 36px;
+      margin-bottom: 14px;
+      padding-left: 12px;
+      border-left: 4px solid #1e90ff;
+    }
+    h3 {
+      color: #161e5e;
+      font-size: 1.1rem;
+      margin-top: 24px;
+      margin-bottom: 10px;
+    }
+    p { margin-bottom: 14px; }
+    .intro {
+      background: #eef6ff;
+      border-left: 4px solid #1e90ff;
+      padding: 16px 20px;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 28px;
+      font-size: 1.05rem;
+    }
+    .category-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin: 14px 0;
+    }
+    .category-box h4 {
+      color: #1e90ff;
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+    }
+    .pro-con {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin: 18px 0;
+    }
+    .pro, .con {
+      padding: 16px;
+      border-radius: 8px;
+    }
+    .pro { background: #f0fdf4; border-left: 4px solid #22c55e; }
+    .con { background: #fef2f2; border-left: 4px solid #ef4444; }
+    .pro h4 { color: #15803d; margin-bottom: 8px; }
+    .con h4 { color: #b91c1c; margin-bottom: 8px; }
+    .pro ul, .con ul { padding-left: 18px; }
+    .pro li, .con li { margin-bottom: 6px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    th {
+      background: #173a59;
+      color: #fff;
+      font-weight: 600;
+    }
+    tr:nth-child(even) { background: #f8fafc; }
+    .highlight {
+      background: #fffbeb;
+      border: 1px solid #fbbf24;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 18px 0;
+    }
+    .highlight strong { color: #92400e; }
+    .resolution-table td:first-child { font-weight: 600; color: #2154b4; }
+    code {
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+    }
+    .back-link {
+      display: inline-block;
+      margin-top: 36px;
+      padding: 10px 24px;
+      background: #1e90ff;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+    .back-link:hover { background: #1873cc; }
+    @media (max-width: 640px) {
+      .container { padding: 24px; }
+      .pro-con { grid-template-columns: 1fr; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>How PDFs Work</h1>
+    <p style="color:#666; margin-bottom:24px;">A practical guide for construction, design, and document management</p>
+
+    <div class="intro">
+      <strong>PDF</strong> (Portable Document Format) was created by Adobe in 1993 to solve a simple problem: 
+      a file that looks exactly the same on every computer, printer, and screen — regardless of software, 
+      operating system, or hardware. For construction professionals, this means a blueprint sent from 
+      Saskatoon to a sub in Calgary looks identical on both ends.
+    </div>
+
+    <h2>1. What Is a PDF?</h2>
+    <p>
+      At its core, a PDF is a container. It wraps together text, vector graphics, raster images, fonts, 
+      and metadata into a single file. Unlike a Word document, a PDF is designed to be <strong>read-only</strong> 
+      and <strong>device-independent</strong>. It doesn't rely on the fonts installed on your computer, 
+      and it preserves exact positioning of every element on the page.
+    </p>
+    <p>
+      PDFs use a coordinate system measured in <strong>points</strong> (1 point = 1/72 inch). This is why 
+      PDFs are naturally print-friendly — the math maps directly to physical paper sizes.
+    </p>
+
+    <h2>2. The Four Kinds of PDFs</h2>
+
+    <p>
+      Not all PDFs are created equal. Depending on how they were made, they behave very differently
+      when you try to edit, search, or extract data from them. Understanding these four types is critical
+      for choosing the right tool for the job.
+    </p>
+
+    <div class="category-box">
+      <h4>📐 Type 1 — Vector PDF (Generated from CAD/Design Software)</h4>
+      <p>
+        Created directly from AutoCAD, Revit, Vectorworks, or other design software. Contains live vector
+        lines, arcs, text, and embedded fonts. Text is selectable and searchable. File sizes are small.
+        Scale data is preserved. <strong>This is the gold standard for construction.</strong>
+      </p>
+      <p><em>Examples: AutoCAD export, Revit sheet export, Vectorworks PDF, SolidWorks drawing.</em></p>
+    </div>
+
+    <div class="category-box">
+      <h4>⚡ Type 2 — Hybrid PDF (Mixed Vector + Raster Content)</h4>
+      <p>
+        The most common type in the real world. Contains a mix of vector linework, live text, and raster
+        images on the same page. Construction PDFs are almost always hybrids — vector lines for the
+        drawing, raster images for photos or rendered details, and live text for dimensions and labels.
+        Still measurable and searchable in most cases.
+      </p>
+      <p><em>Examples: Architectural drawings with rendered elevations, engineering reports with embedded
+      photos, permit sets with scanned detail sheets mixed with CAD linework.</em></p>
+    </div>
+
+    <div class="category-box">
+      <h4>🔍 Type 3 — OCR PDF (Scanned + Hidden Text Layer)</h4>
+      <p>
+        An image-based PDF that has been run through Optical Character Recognition (OCR). The visible
+        page is still a photo, but a hidden text layer sits underneath. You can search and copy text,
+        but the underlying image limits precision when marking up or measuring. No vector geometry to snap to.
+      </p>
+      <p><em>Examples: Scanned permit documents with OCR applied, archived drawings processed through
+      Adobe Acrobat or ABBYY FineReader, old paper plans digitized and text-recognized.</em></p>
+    </div>
+
+    <div class="category-box">
+      <h4>🖼️ Type 4 — Image-Based / "Scanned" PDF (Raster Only)</h4>
+      <p>
+        A PDF that is essentially a photo of a page. Each page is one big image (usually JPEG or TIFF
+        compressed). No selectable text, no vector lines, no searchability, no embedded scale data.
+        File sizes are large. Everything must be calibrated manually.
+      </p>
+      <p><em>Examples: Paper plans scanned on a copier, old drawings digitized with a phone camera,
+      signed documents scanned to PDF, faxed pages saved as PDF.</em></p>
+    </div>
+
+    <div class="highlight">
+      <strong>Why this matters for markup tools:</strong> A tool like this can read scale data
+      from vector PDFs (Type 1 and 2) to draw dimension lines to exact scale. Image-only PDFs
+      (Type 4) require manual scale calibration. OCR PDFs (Type 3) may have searchable text but
+      the visual is still a photo — measurements won't snap to vector geometry.
+    </div><h2>3. Vector vs. Raster — The Critical Difference</h2>
+
+    <table>
+      <tr>
+        <th>Property</th>
+        <th>Vector</th>
+        <th>Raster</th>
+      </tr>
+      <tr>
+        <td>What it is</td>
+        <td>Mathematical paths, lines, curves, and shapes</td>
+        <td>A grid of colored pixels (tiny dots)</td>
+      </tr>
+      <tr>
+        <td>Zoom behavior</td>
+        <td>Stays perfectly sharp at any zoom level</td>
+        <td>Gets blurry or pixelated when zoomed in</td>
+      </tr>
+      <tr>
+        <td>File size</td>
+        <td>Very small (just math equations)</td>
+        <td>Grows rapidly with resolution and color depth</td>
+      </tr>
+      <tr>
+        <td>Editability</td>
+        <td>Individual lines and objects can be selected and edited</td>
+        <td>Edits affect pixels; erasing leaves holes</td>
+      </tr>
+      <tr>
+        <td>Scale / Measurement</td>
+        <td>Exact real-world dimensions embedded in the file</td>
+        <td>Only pixel dimensions; scale must be calibrated manually</td>
+      </tr>
+      <tr>
+        <td>Best for</td>
+        <td>Blueprints, logos, technical drawings, CAD output</td>
+        <td>Photographs, scanned documents, textures</td>
+      </tr>
+    </table>
+
+    <h3>The Analogy</h3>
+    <p>
+      Think of a <strong>vector</strong> file as a recipe: "Draw a line from point A to point B, 3 units thick, 
+      colored blue." The computer redraws it perfectly every time, at any size. A <strong>raster</strong> file 
+      is like a photograph of that line — it only looks good at the size it was taken. Blow it up, and 
+      you see the individual pixels.
+    </p>
+
+    <h2>4. JPG vs. PNG — Similarities and Differences</h2>
+
+    <p>
+      Both JPG and PNG are raster image formats, but they solve different problems. Understanding 
+      when to use each saves file space and preserves quality.
+    </p>
+
+    <table>
+      <tr>
+        <th>Feature</th>
+        <th>JPG / JPEG</th>
+        <th>PNG</th>
+      </tr>
+      <tr>
+        <td>Compression</td>
+        <td>Lossy — discards data to shrink file size</td>
+        <td>Lossless — preserves every pixel exactly</td>
+      </tr>
+      <tr>
+        <td>File size</td>
+        <td>Small to medium (adjustable quality)</td>
+        <td>Large (no quality slider)</td>
+      </tr>
+      <tr>
+        <td>Transparency</td>
+        <td>❌ No transparency support</td>
+        <td>✅ Full transparency support</td>
+      </tr>
+      <tr>
+        <td>Best for</td>
+        <td>Photographs, complex images with gradients</td>
+        <td>Logos, diagrams, screenshots, images needing transparency</td>
+      </tr>
+      <tr>
+        <td>Text / line quality</td>
+        <td>Can blur sharp edges at high compression</td>
+        <td>Keeps text and lines razor-sharp</td>
+      </tr>
+      <tr>
+        <td>Color depth</td>
+        <td>16.7 million colors (24-bit)</td>
+        <td>16.7 million colors + alpha channel (32-bit)</td>
+      </tr>
+    </table>
+
+    <div class="pro-con">
+      <div class="pro">
+        <h4>✅ Use JPG when:</h4>
+        <ul>
+          <li>Sending photos from the jobsite</li>
+          <li>File size matters (email limits, slow connections)</li>
+          <li>The image has no sharp text or lines</li>
+          <li>You don't need transparency</li>
+        </ul>
+      </div>
+      <div class="con">
+        <h4>❌ Don't use JPG when:</h4>
+        <ul>
+          <li>The image contains text, diagrams, or blueprints</li>
+          <li>You need a transparent background</li>
+          <li>You will edit and re-save the file multiple times (quality degrades each time)</li>
+          <li>Precision matters (markups, measurements, CAD screenshots)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pro-con">
+      <div class="pro">
+        <h4>✅ Use PNG when:</h4>
+        <ul>
+          <li>Saving screenshots or diagrams</li>
+          <li>Exporting marked-up plans with clean text</li>
+          <li>You need transparency (logo overlays, watermarks)</li>
+          <li>Quality cannot degrade — archival storage</li>
+        </ul>
+      </div>
+      <div class="con">
+        <h4>❌ Don't use PNG when:</h4>
+        <ul>
+          <li>File size is critical (PNG photos are 5–10× larger than JPG)</li>
+          <li>Sending hundreds of jobsite photos</li>
+          <li>Storage space is limited</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>5. Resolution — Screens, Printers, and File Size</h2>
+
+    <p>
+      Resolution is the density of pixels or dots in an image. It's measured in <strong>DPI</strong> 
+      (dots per inch) or <strong>PPI</strong> (pixels per inch). The same image at different resolutions 
+      can look identical on screen but wildly different when printed.
+    </p>
+
+    <h3>Understanding DPI</h3>
+    <p>
+      DPI tells you how many dots (or pixels) fit into one linear inch. A 100×100 pixel image at 100 DPI 
+      prints at exactly 1 inch square. At 200 DPI, the same 100 pixels print at 0.5 inches square — 
+      smaller, but sharper.
+    </p>
+
+    <table class="resolution-table">
+      <tr>
+        <th>Context</th>
+        <th>Typical DPI</th>
+        <th>Notes</th>
+      </tr>
+      <tr>
+        <td>Computer screen</td>
+        <td>72–96 DPI</td>
+        <td>Most monitors display at 96 PPI. Retina/4K screens are higher but software scales them.</td>
+      </tr>
+      <tr>
+        <td>Office printer</td>
+        <td>150–300 DPI</td>
+        <td>300 DPI is the standard for "laser quality" text and graphics.</td>
+      </tr>
+      <tr>
+        <td>Large-format plotter</td>
+        <td>300–600 DPI</td>
+        <td>D-size (24×36) and E-size (36×48) construction plans.</td>
+      </tr>
+      <tr>
+        <td>High-end photo print</td>
+        <td>300–600 DPI</td>
+        <td>Magazine and photo quality. Diminishing returns above 600 DPI.</td>
+      </tr>
+      <tr>
+        <td>Scanning for archive</td>
+        <td>200–400 DPI</td>
+        <td>200 DPI is readable; 400 DPI captures fine pencil marks and erasures.</td>
+      </tr>
+      <tr>
+        <td>Scanning for OCR</td>
+        <td>300 DPI minimum</td>
+        <td>OCR accuracy drops significantly below 300 DPI.</td>
+      </tr>
+      <tr>
+        <td>Precision markup / takeoff</td>
+        <td>288–1152 DPI</td>
+        <td>1152 DPI = 16 pixels per PDF point. Eliminates rounding errors in measurements.</td>
+      </tr>
+    </table>
+
+    <h3>File Size vs. Resolution</h3>
+    <p>
+      File size scales with the <strong>square</strong> of resolution. Doubling the DPI quadruples the 
+      pixel count and roughly quadruples the file size.
+    </p>
+
+    <div class="highlight">
+      <strong>Example:</strong> An 8.5×11" page scanned at 200 DPI ≈ 2 MB. The same page at 400 DPI ≈ 8 MB. 
+      At 600 DPI ≈ 18 MB. A full D-size blueprint (24×36") at 600 DPI can exceed 100 MB as a raster image.
+    </div>
+
+    <h3>The 72 DPI Myth</h3>
+    <p>
+      PDFs internally use <strong>72 points per inch</strong>, but this is a unit of measurement, not a 
+      resolution limit. A PDF can contain vector art that is infinitely sharp at any zoom, and raster images 
+      at any embedded resolution. The 72 PPI number only matters when converting PDF pages to raster images 
+      (like exporting to PNG or JPG) — at that point, you choose the output DPI.
+    </p>
+
+    <h2>6. Construction Drawings — Special Considerations</h2>
+
+    <p>
+      Construction documents have unique requirements that don't apply to office documents or photos. 
+      Understanding these saves time, money, and mistakes in the field.
+    </p>
+
+    <h3>Plan Set Formats</h3>
+    <table>
+      <tr>
+        <th>Size</th>
+        <th>Dimensions</th>
+        <th>Common Use</th>
+      </tr>
+      <tr>
+        <td>Letter (ANSI A)</td>
+        <td>8.5 × 11"</td>
+        <td>Specs, schedules, detail sheets</td>
+      </tr>
+      <tr>
+        <td>Tabloid (ANSI B)</td>
+        <td>11 × 17"</td>
+        <td>Small floor plans, sections</td>
+      </tr>
+      <tr>
+        <td>D-Size (ANSI D)</td>
+        <td>22 × 34" or 24 × 36"</td>
+        <td>Standard construction floor plans</td>
+      </tr>
+      <tr>
+        <td>E-Size (ANSI E)</td>
+        <td>34 × 44" or 36 × 48"</td>
+        <td>Site plans, complex elevations, full sets</td>
+      </tr>
+    </table>
+
+    <h3>PDF Scale in Construction</h3>
+    <p>
+      Construction PDFs exported from CAD software (AutoCAD, Revit, Vectorworks) contain 
+      <strong>embedded scale data</strong>. This means the PDF knows that 1 inch on the page equals 
+      1 foot, 10 feet, or 50 feet in the real world. Tools like DZ Markup can read this data to draw 
+      dimension lines that snap to true scale — a feature impossible with scanned or raster-only PDFs.
+    </p>
+
+    <h3>Flattened vs. Non-Flattened PDFs</h3>
+    <p>
+      A <strong>non-flattened</strong> PDF preserves layers, annotations, and scale metadata — 
+      this is what you want for markup and takeoff. A <strong>flattened</strong> PDF merges everything 
+      into a single image layer. It looks the same visually but loses the underlying data. 
+      Always request non-flattened PDFs from your architect or engineer.
+    </p>
+
+    <h3>Scanning Old Drawings</h3>
+    <p>
+      If you must scan paper plans, follow these rules:
+    </p>
+    <ul style="margin-left: 20px; margin-bottom: 16px;">
+      <li><strong>300 DPI minimum</strong> — anything less and dimension text becomes unreadable</li>
+      <li><strong>Grayscale or black & white</strong> — color scanning bloats file size with no benefit for line drawings</li>
+      <li><strong>Save as PNG or TIFF</strong> — avoid JPG for line drawings (compression artifacts blur lines)</li>
+      <li><strong>Calibrate scale manually</strong> — scanned drawings have no embedded scale data</li>
+    </ul>
+
+    <h3>Field Photos vs. Drawings</h3>
+    <p>
+      Jobsite photos (JPG) and construction drawings (PDF) serve different purposes but often need to 
+      live together in the same markup workflow. Photos show existing conditions; drawings show intent. 
+      A good markup tool handles both — DZ Markup accepts PDFs for scale-accurate dimensioning and 
+      JPG/PNG photos for field markups and punch lists.
+    </p>
+
+    
+
+    <h2>7. Quick Reference — Choosing the Right Format</h2>
+
+    <table>
+      <tr>
+        <th>Task</th>
+        <th>Best Format</th>
+        <th>Why</th>
+      </tr>
+      <tr>
+        <td>Sending blueprints to subs</td>
+        <td>PDF (vector, non-flattened)</td>
+        <td>Small file, sharp at any zoom, measurable</td>
+      </tr>
+      <tr>
+        <td>Jobsite photo documentation</td>
+        <td>JPG (high quality)</td>
+        <td>Small file, good for complex real-world scenes</td>
+      </tr>
+      <tr>
+        <td>Screenshot of software</td>
+        <td>PNG</td>
+        <td>Sharp text, no compression artifacts</td>
+      </tr>
+      <tr>
+        <td>Logo or watermark overlay</td>
+        <td>PNG (transparent)</td>
+        <td>Transparency blends over any background</td>
+      </tr>
+      <tr>
+        <td>Archiving paper drawings</td>
+        <td>PNG or TIFF at 300+ DPI</td>
+        <td>Lossless, no degradation over time</td>
+      </tr>
+      <tr>
+        <td>Emailing quick markups</td>
+        <td>PDF or PNG</td>
+        <td>Preserves line quality, universally readable</td>
+      </tr>
+      <tr>
+        <td>Large-format plotter output</td>
+        <td>PDF (vector)</td>
+        <td>Plotter renders vectors at full device resolution</td>
+      </tr>
+    </table>
+
+    <h2>Summary</h2>
+    <p>
+      PDFs are the lingua franca of construction because they preserve intent across every device. 
+      Vector PDFs are measurable and sharp; raster PDFs are photos that need calibration. JPG is for 
+      photos, PNG is for precision. Resolution matters when printing or scanning, but vector art is 
+      resolution-independent. For construction work, always prefer vector-based, non-flattened PDFs 
+      exported directly from CAD — they carry the scale data that makes digital markup and takeoff 
+      possible.
+    </p>
+
+    <a href="https://pdf.bluejetty.ca/PDF-IMG-MGR.dc.html" class="back-link">← Back to PDF Manager</a>
+  </div>
+</body>
+</html>

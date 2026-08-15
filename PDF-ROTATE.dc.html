@@ -22,7 +22,7 @@
   <div style="max-width:900px; width:100%;">
 <dc-import name="Notepad" hint-size="100%,60px" storage-key="sharedNotepad"></dc-import>
 
-<div style="font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:22px; letter-spacing:0.02em; text-transform:uppercase; color:#1d1f20; margin:2px 0 10px; text-align:center;">PDF-SIZE-ROTATE</div>
+<div style="font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:22px; letter-spacing:0.02em; text-transform:uppercase; color:#1d1f20; margin:2px 0 10px; text-align:center;">PDF-ROTATE</div>
 
 <dc-import name="DropBox" hint-size="100%,165px"
       headline="DROP-BOX"
@@ -71,7 +71,7 @@
       <div style="position:relative; border:1px solid rgba(29,31,32,0.16); background:#fff; margin-top:2px; margin-bottom:0; display:flex; flex-direction:column; min-height:180px;">
         <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(29,31,32,0.6); padding:14px 14px 0; margin-bottom:8px;">Page list</div>
         <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:0 14px 14px;">
-          <div style="font-size:13px; color:rgba(29,31,32,0.45); text-align:center;">Drop a PDF to see page sizes and rotate pages</div>
+          <div style="font-size:13px; color:rgba(29,31,32,0.45); text-align:center;">Drop a PDF to rotate pages</div>
         </div>
       </div>
     </sc-if>
@@ -128,7 +128,7 @@
       button-opacity="{{ saveOpacity }}"
     ></dc-import>
 
-        <dc-import name="ToolHeader" activeTool="PDF-SIZE-ROTATE" on-clear="{{ clearPage }}" clear-label="CLICK TO CLEAR DROP-BOX" hint-size="100%,120px"></dc-import>
+        <dc-import name="ToolHeader" activeTool="PDF-ROTATE" on-clear="{{ clearPage }}" clear-label="CLICK TO CLEAR DROP-BOX" hint-size="100%,120px"></dc-import>
 
   </div>
 </div>
@@ -183,7 +183,7 @@ class Component extends DCLogic {
     if (!confirm('Clear all dropped files? This cannot be undone.')) return;
     this.currentFile = null;
     this.setState({ fileName: '', pages: [], error: null, progressPercent: 0, progressText: '' });
-    if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('sizerotate');
+    if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('rotate');
   };
 
   componentDidMount() {
@@ -192,7 +192,7 @@ class Component extends DCLogic {
     }
     this.consumeHandoff();
     if (window.SharedFileStore) {
-      window.SharedFileStore.loadSharedFile('sizerotate').then((f) => { if (f) this.handleFile(f, true); });
+      window.SharedFileStore.loadSharedFile('rotate').then((f) => { if (f) this.handleFile(f, true); });
     }
     this._blockNav = (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; };
     window.addEventListener('dragover', this._blockNav);
@@ -334,7 +334,7 @@ class Component extends DCLogic {
         page.cleanup();
       }
       this.setState({ pages });
-      if (!fromShared && window.SharedFileStore) window.SharedFileStore.saveSharedFile(file, 'sizerotate');
+      if (!fromShared && window.SharedFileStore) window.SharedFileStore.saveSharedFile(file, 'rotate');
     } catch (err) {
       console.error(err);
       this.setState({ error: 'Error loading PDF: ' + (err.message || 'Could not read PDF.') });
