@@ -279,6 +279,7 @@ class Component extends DCLogic {
   };
 
   setDpi1152 = () => this.setState({ dpi: '1152' });
+  setDpi2304 = () => this.setState({ dpi: '2304' });
 
   prevPage = () => {
     if (this.state.previewIndex > 0) this.setState((s) => ({ previewIndex: s.previewIndex - this.PAGES_PER_VIEW }));
@@ -456,7 +457,8 @@ class Component extends DCLogic {
       stopPropagation: this.stopPropagation,
       onPasteClick: this.onPasteClick,
       dpiOptions: [
-        { label: '1152 DPI (max. precision)', checked: true, onSelect: this.setDpi1152 },
+        { label: '1152 DPI (high DPI)',  checked: dpi === '1152', onSelect: this.setDpi1152 },
+        { label: '2304 DPI (max. DPI)',  checked: dpi === '2304', onSelect: this.setDpi2304 },
       ].map((o) => ({ ...o, bg: '#5980a6', color: '#f2f2f3' })),
       flatten: () => this.flatten(),
       clearPage: this.clearPage,
