@@ -54,7 +54,12 @@
 
     <!-- Source DPI notice -->
     <sc-if value="{{ hasSourceNote }}" hint-placeholder-val="{{ false }}">
-      <div style="padding:10px 14px; font-size:13px; color:{{ sourceNoteColor }}; background:{{ sourceNoteBg }}; border:1px solid {{ sourceNoteBorder }}; margin-bottom:6px;">{{ sourceNote }}</div>
+      <div style="padding:10px 14px; font-size:13px; color:{{ sourceNoteColor }}; background:{{ sourceNoteBg }}; border:1px solid {{ sourceNoteBorder }}; margin-bottom:6px; line-height:1.6;">
+       {{ sourceNote }}
+       <sc-if value="{{ showFlattenerHint }}" hint-placeholder-val="{{ false }}">
+         <div style="margin-top:6px; color:#8a2c2c;">To flatten (rasterize) this high-quality vector PDF at 600 DPI instead, use <a href="./PDF-FLATTENER.dc.html" style="color:#8a2c2c; font-weight:700; text-decoration:underline;">PDF-FLATTENER</a>.</div>
+       </sc-if>
+     </div>
     </sc-if>
 
     <!-- Progress -->
@@ -364,12 +369,12 @@ class Component extends DCLogic {
     const compressDisabled = generating || !fileName;
 
     // Source DPI notice
-    let sourceNote = '', sourceNoteColor = '', sourceNoteBg = '', sourceNoteBorder = '';
+    let sourceNote = '', sourceNoteColor = '', sourceNoteBg = '', sourceNoteBorder = '', showFlattenerHint = false;
     const hasSourceNote = sourceDpi !== null && !!fileName;
     if (hasSourceNote) {
       if (sourceDpi === 0) {
         sourceNote = '⚠ Vector PDF detected — no raster images found. Compressing will rasterize the content and may increase the file size.';
-        sourceNoteColor = '#8a2c2c'; sourceNoteBg = '#fff5f5'; sourceNoteBorder = '#b23b3b';
+        sourceNoteColor = '#8a2c2c'; sourceNoteBg = '#fff5f5'; sourceNoteBorder = '#b23b3b'; showFlattenerHint = true;
       } else if (outputDpi >= sourceDpi) {
         sourceNote = `⚠ Source is ~${sourceDpi} DPI — select an output DPI below this to reduce size. The pre-selected option is a suggested starting point.`;
         sourceNoteColor = '#6b4d00'; sourceNoteBg = '#fffbf0'; sourceNoteBorder = '#c8a820';
@@ -417,7 +422,7 @@ class Component extends DCLogic {
       onPasteClick: this.onPasteClick,
       clearAll: this.clearAll,
       hasSourceNote,
-      sourceNote, sourceNoteColor, sourceNoteBg, sourceNoteBorder,
+      sourceNote, sourceNoteColor, sourceNoteBg, sourceNoteBorder, showFlattenerHint,
       dpiOptions,
       compressDisabled,
       compressLabel: generating ? 'COMPRESSING…' : 'COMPRESS & SAVE PDF',
