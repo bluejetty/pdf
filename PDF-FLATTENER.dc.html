@@ -134,7 +134,7 @@ class Component extends DCLogic {
     fileName: '',
     pages: [],
     previewIndex: 0,
-    dpi: '600',
+    dpi: '576',
     generating: false,
     progressPercent: 0,
     progressText: '',
@@ -185,7 +185,7 @@ class Component extends DCLogic {
     if (!confirm('Clear all dropped files and inputs? This cannot be undone.')) return;
     this.currentFile = null;
     this.currentPdfData = null;
-    this.setState({ fileName: '', pages: [], previewIndex: 0, dpi: '300', error: null, progressPercent: 0, progressText: '' });
+    this.setState({ fileName: '', pages: [], previewIndex: 0, dpi: '576', error: null, progressPercent: 0, progressText: '' });
     if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('flattener');
   };
 
@@ -278,8 +278,7 @@ class Component extends DCLogic {
     if (file) this.handleFile(file);
   };
 
-  setDpi300 = () => this.setState({ dpi: '300' });
-  setDpi600 = () => this.setState({ dpi: '600' });
+  setDpi576 = () => this.setState({ dpi: '576' });
 
   prevPage = () => {
     if (this.state.previewIndex > 0) this.setState((s) => ({ previewIndex: s.previewIndex - this.PAGES_PER_VIEW }));
@@ -457,9 +456,8 @@ class Component extends DCLogic {
       stopPropagation: this.stopPropagation,
       onPasteClick: this.onPasteClick,
       dpiOptions: [
-        { label: '300 DPI (standard)', checked: dpi === '300', onSelect: this.setDpi300 },
-        { label: '600 DPI (high quality)', checked: dpi === '600', onSelect: this.setDpi600 },
-      ].map((o) => ({ ...o, bg: o.checked ? '#5980a6' : 'transparent', color: o.checked ? '#f2f2f3' : '#1d1f20' })),
+        { label: '576 DPI (archival)', checked: true, onSelect: this.setDpi576 },
+      ].map((o) => ({ ...o, bg: '#5980a6', color: '#f2f2f3' })),
       flatten: () => this.flatten(),
       clearPage: this.clearPage,
       hasSourceDpiNote: this.state.sourceDpi !== null && !!fileName,
