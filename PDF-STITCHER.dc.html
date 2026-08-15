@@ -10,6 +10,7 @@
 <helmet>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     a { color: #5980a6; }
     a:hover { color: #416180; }
@@ -110,11 +111,14 @@
         style="flex:1; min-width:220px; font-family:'Courier New',monospace; font-size:13px; color:#1d1f20; background:#fff; padding:8px 10px; border:1px solid rgba(29,31,32,0.16); border-radius:0;"
       />
     </div>
+    <sc-if value="{{ hasQualityNote }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:8px 14px; font-size:12px; color:{{ qualityNoteColor }}; background:{{ qualityNoteBg }}; border:1px solid rgba(29,31,32,0.16); margin-bottom:0; line-height:1.6;">{{ qualityNote }}</div>
+    </sc-if>
     <dc-import name="SaveBox" hint-size="100%,60px"
       is-mobile="{{ isMobile }}"
-      label="Resolution"
+      label="Output"
       radio-name="stitcherDpi"
-      options="{{ dpiOptions }}"
+      options="{{ [] }}"
       show-button="{{ true }}"
       button-label="{{ generateLabel }}"
       on-button-click="{{ generate }}"
@@ -139,15 +143,12 @@ class Component extends DCLogic {
     generating: false,
     dragOver: false,
     urlInput: '',
-    dpi: '300',
     isMobile: typeof window !== 'undefined' && window.innerWidth < 640,
   };
 
   fileInputRef = React.createRef();
   seqNum = 1;
   fileCounter = 1;
-  setDpi150 = () => this.setState({ dpi: '150' }, () => this.persist());
-  setDpi300 = () => this.setState({ dpi: '300' }, () => this.persist());
   textCounter = 1;
   itemIdCounter = 1;
   draggingId = null;
@@ -173,13 +174,13 @@ class Component extends DCLogic {
 
   persist() {
     try {
-      const { items, filename, dpi, userEditedFilename } = this.state;
+      const { items, filename, userEditedFilename } = this.state;
       const serItems = items.map((i) => {
         const { objectUrl, ...rest } = i;
         if (rest.data) rest.data = this.bufToBase64(rest.data);
         return rest;
       });
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ items: serItems, filename, dpi, userEditedFilename, fileCounter: this.fileCounter, textCounter: this.textCounter, itemIdCounter: this.itemIdCounter }));
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify({ items: serItems, filename, userEditedFilename, fileCounter: this.fileCounter, textCounter: this.textCounter, itemIdCounter: this.itemIdCounter }));
     } catch (err) { console.warn('Persist failed', err); }
   }
 
@@ -200,7 +201,7 @@ class Component extends DCLogic {
       this.fileCounter = data.fileCounter || this.fileCounter;
       this.textCounter = data.textCounter || this.textCounter;
       this.itemIdCounter = data.itemIdCounter || this.itemIdCounter;
-      this.setState({ items, filename: data.filename || this.state.filename, dpi: data.dpi || this.state.dpi, userEditedFilename: !!data.userEditedFilename });
+      this.setState({ items, filename: data.filename || this.state.filename, userEditedFilename: !!data.userEditedFilename });
     } catch (err) { console.warn('Load failed', err); }
   }
 
@@ -208,10 +209,13 @@ class Component extends DCLogic {
     if (!confirm('Clear all dropped files and inputs? This cannot be undone.')) return;
     this.state.items.forEach((i) => { if (i.objectUrl) URL.revokeObjectURL(i.objectUrl); });
     localStorage.removeItem(this.STORAGE_KEY);
-    this.setState({ items: [], userEditedFilename: false, filename: this.buildAutoName(), dpi: '300' });
+    this.setState({ items: [], userEditedFilename: false, filename: this.buildAutoName() });
   };
 
   componentDidMount() {
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
     this.loadFromStorage();
     if (!this.state.userEditedFilename) this.setState({ filename: this.buildAutoName() });
     this.consumeHandoff();
@@ -326,9 +330,45 @@ class Component extends DCLogic {
     }
   }
 
+  async _detectSourceDpi(pdf) {
+    try {
+      const page = await pdf.getPage(1);
+      const vp = page.getViewport({ scale: 1 });
+      const opList = await page.getOperatorList();
+      const OPS = window.pdfjsLib.OPS;
+      for (let j = 0; j < opList.fnArray.length; j++) {
+        if (opList.fnArray[j] === OPS.paintImageXObject) {
+          const name = opList.argsArray[j][0];
+          const imgData = await new Promise((res) => { try { page.objs.get(name, res); } catch(e) { res(null); } });
+          if (imgData && imgData.width && imgData.height) {
+            const dpiX = imgData.width / (vp.width / 72);
+            const dpiY = imgData.height / (vp.height / 72);
+            page.cleanup();
+            return Math.round((dpiX + dpiY) / 2);
+          }
+        }
+      }
+      page.cleanup();
+      return 0; // vector
+    } catch(e) { return 0; }
+  }
+
+  async _detectPdfItem(id, data) {
+    try {
+      if (!window.pdfjsLib) return;
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      const pdf = await window.pdfjsLib.getDocument({ data: data.slice(0) }).promise;
+      const sd = await this._detectSourceDpi(pdf);
+      this.setState((s) => ({ items: s.items.map((i) => i.id === id ? { ...i, sourceDpi: sd } : i) }), () => this.persist());
+    } catch(e) { /* ignore */ }
+  }
+
   async processFile(file) {
     if (file.type === 'application/pdf') {
-      this.addItem({ id: this.itemIdCounter++, type: 'pdf', name: 'FILE ' + this.fileCounter++, data: await file.arrayBuffer(), pageSize: '8.5x11', orientation: 'portrait', included: true });
+      const data = await file.arrayBuffer();
+      const id = this.itemIdCounter++;
+      this.addItem({ id, type: 'pdf', name: 'FILE ' + this.fileCounter++, data, pageSize: '8.5x11', orientation: 'portrait', included: true, sourceDpi: null });
+      this._detectPdfItem(id, data);
     } else if (file.type.startsWith('image/')) {
       await this.processImageFile(file);
     } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
@@ -451,7 +491,7 @@ class Component extends DCLogic {
   onMobileNav = (e) => { const v = e.target.value; if (v) window.location.href = v; };
 
   renderVals() {
-    const { items, textInput, filename, generating, dragOver, isMobile, dpi } = this.state;
+    const { items, textInput, filename, generating, dragOver, isMobile } = this.state;
     const includedCount = items.filter((i) => i.included).length;
     const disabled = generating || includedCount === 0;
     const getDims = (size, orientation) => {
@@ -496,11 +536,27 @@ class Component extends DCLogic {
       generateCursor: disabled ? 'not-allowed' : 'pointer',
       generateOpacity: disabled ? 0.45 : 1,
       generateLabel: generating ? 'WORKING…' : 'PDF-FLATTEN / SAVE',
-      dpiOptions: [
-        { label: '150 DPI (smaller file)', checked: dpi === '150', onSelect: this.setDpi150 },
-        { label: '300 DPI (print quality)', checked: dpi === '300', onSelect: this.setDpi300 },
-      ].map((o) => ({ ...o, bg: o.checked ? '#5980a6' : 'transparent', color: o.checked ? '#f2f2f3' : '#1d1f20' })),
       generate: () => this.generate(),
+      hasQualityNote: items.length > 0,
+      ...(() => {
+        const pdfItems = items.filter((i) => i.type === 'pdf');
+        const detecting = pdfItems.some((i) => i.sourceDpi === null);
+        const allVector = pdfItems.length > 0 && pdfItems.every((i) => i.sourceDpi === 0);
+        const rasterItems = pdfItems.filter((i) => i.sourceDpi > 0);
+        let note = '', color = '#2d5a3d', bg = '#f0f7f0';
+        if (pdfItems.length === 0) {
+          note = 'Images and text are embedded at their native quality — lossless.';
+        } else if (detecting) {
+          note = 'Detecting PDF quality…'; color = '#2c455d'; bg = '#eef6ff';
+        } else if (allVector) {
+          note = '✓ All PDFs are vector — stitched output will preserve full vector quality.';
+        } else {
+          const maxDpi = Math.max(...rasterItems.map((i) => i.sourceDpi));
+          note = `✓ PDF(s) copied losslessly — output preserves original quality (~${maxDpi} DPI max). To downsample first, use PDF-SPLITTER.`;
+          color = '#2c455d'; bg = '#eef6ff';
+        }
+        return { qualityNote: note, qualityNoteColor: color, qualityNoteBg: bg };
+      })(),
       clearPage: this.clearPage,
       items: items.map((item) => {
         const dims = getDims(item.pageSize, item.orientation);
@@ -516,7 +572,9 @@ class Component extends DCLogic {
           isPdf: item.type === 'pdf',
           isText: item.type === 'text',
           snippet,
-          typeLabel: item.type.toUpperCase(),
+          typeLabel: item.type === 'pdf'
+            ? (item.sourceDpi === null ? 'PDF · detecting…' : item.sourceDpi === 0 ? 'PDF · Vector' : `PDF · ~${item.sourceDpi} DPI`)
+            : item.type.toUpperCase(),
           pageLabel: `${item.pageSize} ${item.orientation[0].toUpperCase()}`,
           toggleIncluded: (e) => this.toggleIncluded(item.id, e.target.checked),
           setPageSize: (e) => this.setPageSize(item.id, e.target.value),

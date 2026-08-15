@@ -65,15 +65,10 @@
         </div>
       </div>
 
-      <div style="display:flex; align-items:{{ resolutionAlign }}; gap:18px; padding:14px 18px; border:1px solid rgba(29,31,32,0.16); margin-top:0; flex-wrap:wrap; flex-direction:{{ resolutionDirection }}; opacity:0.5; pointer-events:none;">
+      <div style="display:flex; align-items:center; gap:18px; padding:14px 18px; border:1px solid rgba(29,31,32,0.16); margin-top:0; flex-wrap:wrap; opacity:0.5; pointer-events:none;">
         <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(29,31,32,0.6);">Resolution</div>
-        <div style="display:inline-flex; overflow:hidden; border:1px solid rgba(29,31,32,0.16);">
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; color:#1d1f20;">72 DPI (screen)</label>
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); color:#1d1f20;">144 DPI (retina)</label>
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); background:#5980a6; color:#f2f2f3;">288 DPI (print quality)</label>
-          <label style="display:inline-flex; align-items:center; gap:6px; padding:7px 14px; font-size:13px; border-left:1px solid rgba(29,31,32,0.16); color:#1d1f20;">576 DPI (archival)</label>
-        </div>
-        <button style="border:1px solid #5980a6; background:#5980a6; color:#f2f2f3; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:14px; letter-spacing:0.02em; padding:9px 20px; margin-left:{{ resolutionButtonMarginLeft }};">PDF-FLATTEN / SAVE</button>
+        <div style="font-size:13px; color:rgba(29,31,32,0.55); font-style:italic;">Drop a PDF — quality options appear after detection</div>
+        <button style="border:1px solid #5980a6; background:#5980a6; color:#f2f2f3; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:14px; letter-spacing:0.02em; padding:9px 20px; margin-left:auto;">PDF-FLATTEN / SAVE</button>
       </div>
     </sc-if>
 
@@ -131,6 +126,9 @@
         </sc-for>
       </div>
 
+      <sc-if value="{{ hasSourceDpiNote }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:8px 14px; font-size:12px; color:{{ sourceDpiNoteColor }}; background:{{ sourceDpiNoteBg }}; border:1px solid rgba(29,31,32,0.16); margin-bottom:0; line-height:1.6;">{{ sourceDpiNote }}</div>
+      </sc-if>
       <dc-import name="SaveBox" hint-size="100%,60px"
       is-mobile="{{ isMobile }}"
         label="Resolution"
@@ -176,16 +174,15 @@ class Component extends DCLogic {
     urlInput: '',
     order: [],
     splitAfter: [],
-    dpi: '288',
+    dpi: 'lossless',
+    sourceDpi: null,
     isMobile: typeof window !== 'undefined' && window.innerWidth < 640,
   };
 
   fileInputRef = React.createRef();
   originalBytes = null;
-  setDpi72  = () => this.setState({ dpi: '72' });
-  setDpi144 = () => this.setState({ dpi: '144' });
-  setDpi288 = () => this.setState({ dpi: '288' });
-  setDpi576 = () => this.setState({ dpi: '576' });
+  pdfJsDoc = null;
+  setDpi = (val) => this.setState({ dpi: val });
 
   componentDidMount() {
     if (window.pdfjsLib) {
@@ -280,11 +277,12 @@ class Component extends DCLogic {
 
   reset = () => {
     this.originalBytes = null;
+    this.pdfJsDoc = null;
     this.state.downloadFiles.forEach((f) => URL.revokeObjectURL(f.url));
     this.setState({
       fileName: null, baseName: '', pages: [], loading: false, error: null,
       generating: false, progressText: '', downloadFiles: [],
-      order: [], splitAfter: [],
+      order: [], splitAfter: [], dpi: 'lossless', sourceDpi: null,
     });
     if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('splitter');
   };
@@ -300,7 +298,9 @@ class Component extends DCLogic {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
       const buf = await file.arrayBuffer();
       this.originalBytes = buf.slice(0);
-      const doc = await window.pdfjsLib.getDocument({ data: buf }).promise;
+      const doc = await window.pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
+      this.pdfJsDoc = doc;
+      this._detectSourceDpi(doc).then((sd) => this.setState({ sourceDpi: sd }));
       const baseName = file.name.replace(/\.pdf$/i, '');
       const pages = [];
       const THUMB_LIMIT = 40;
@@ -373,8 +373,57 @@ class Component extends DCLogic {
     return groups.filter((g) => g.length > 0);
   }
 
+  async _detectSourceDpi(pdf) {
+    try {
+      const page = await pdf.getPage(1);
+      const vp = page.getViewport({ scale: 1 });
+      const opList = await page.getOperatorList();
+      const OPS = window.pdfjsLib.OPS;
+      for (let j = 0; j < opList.fnArray.length; j++) {
+        if (opList.fnArray[j] === OPS.paintImageXObject) {
+          const name = opList.argsArray[j][0];
+          const imgData = await new Promise((res) => { try { page.objs.get(name, res); } catch(e) { res(null); } });
+          if (imgData && imgData.width && imgData.height) {
+            const dpiX = imgData.width / (vp.width / 72);
+            const dpiY = imgData.height / (vp.height / 72);
+            page.cleanup();
+            return Math.round((dpiX + dpiY) / 2);
+          }
+        }
+      }
+      page.cleanup();
+      return 0; // vector — no raster images found
+    } catch(e) { return 0; }
+  }
+
+  async _renderGroupAtDpi(group, dpiVal) {
+    const { PDFDocument } = window.PDFLib;
+    const outDoc = await PDFDocument.create();
+    const scale = dpiVal / 72;
+    for (const pageIdx of group) {
+      const page = await this.pdfJsDoc.getPage(pageIdx);
+      const viewport72 = page.getViewport({ scale: 1 });
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const jpegBytes = await new Promise((resolve) => {
+        canvas.toBlob((blob) => blob.arrayBuffer().then(resolve), 'image/jpeg', 0.92);
+      });
+      const jpegImage = await outDoc.embedJpg(new Uint8Array(jpegBytes));
+      const pdfPage = outDoc.addPage([viewport72.width, viewport72.height]);
+      pdfPage.drawImage(jpegImage, { x: 0, y: 0, width: viewport72.width, height: viewport72.height });
+      page.cleanup();
+    }
+    return await outDoc.save();
+  }
+
   async generate() {
-    const { baseName } = this.state;
+    const { baseName, dpi, sourceDpi } = this.state;
     if (!this.originalBytes) return;
     this.state.downloadFiles.forEach((f) => URL.revokeObjectURL(f.url));
 
@@ -382,18 +431,24 @@ class Component extends DCLogic {
     if (!groups || groups.length === 0) { alert('No pages left to export — undo a delete or add pages.'); return; }
 
     this.setState({ generating: true, progressText: groups.length > 1 ? `0 / ${groups.length}` : 'Working…', downloadFiles: [] });
+    const useLossless = dpi === 'lossless' || sourceDpi === 0;
     try {
       const { PDFDocument } = window.PDFLib;
-      const srcDoc = await PDFDocument.load(this.originalBytes.slice(0));
       const padWidth = Math.max(2, String(groups.length).length);
+      const srcDoc = useLossless ? await PDFDocument.load(this.originalBytes.slice(0)) : null;
 
       if (groups.length <= 2) {
         const downloadFiles = [];
         for (let i = 0; i < groups.length; i++) {
-          const outDoc = await PDFDocument.create();
-          const copied = await outDoc.copyPages(srcDoc, groups[i].map((idx) => idx - 1));
-          copied.forEach((p) => outDoc.addPage(p));
-          const bytes = await outDoc.save();
+          let bytes;
+          if (useLossless) {
+            const outDoc = await PDFDocument.create();
+            const copied = await outDoc.copyPages(srcDoc, groups[i].map((idx) => idx - 1));
+            copied.forEach((p) => outDoc.addPage(p));
+            bytes = await outDoc.save();
+          } else {
+            bytes = await this._renderGroupAtDpi(groups[i], parseInt(dpi, 10));
+          }
           const blob = new Blob([bytes], { type: 'application/pdf' });
           const url = URL.createObjectURL(blob);
           const name = groups.length === 1 ? `${baseName}.pdf` : `${baseName}-${String(i + 1).padStart(padWidth, '0')}.pdf`;
@@ -406,10 +461,15 @@ class Component extends DCLogic {
 
       const zip = new window.JSZip();
       for (let i = 0; i < groups.length; i++) {
-        const outDoc = await PDFDocument.create();
-        const copied = await outDoc.copyPages(srcDoc, groups[i].map((idx) => idx - 1));
-        copied.forEach((p) => outDoc.addPage(p));
-        const bytes = await outDoc.save();
+        let bytes;
+        if (useLossless) {
+          const outDoc = await PDFDocument.create();
+          const copied = await outDoc.copyPages(srcDoc, groups[i].map((idx) => idx - 1));
+          copied.forEach((p) => outDoc.addPage(p));
+          bytes = await outDoc.save();
+        } else {
+          bytes = await this._renderGroupAtDpi(groups[i], parseInt(dpi, 10));
+        }
         const num = String(i + 1).padStart(padWidth, '0');
         zip.file(`${baseName}-${num}.pdf`, bytes);
         this.setState({ progressText: `${i + 1} / ${groups.length}` });
@@ -425,7 +485,7 @@ class Component extends DCLogic {
   onMobileNav = (e) => { const v = e.target.value; if (v) window.location.href = v; };
 
   renderVals() {
-    const { fileName, pages, loading, error, generating, progressText, downloadFiles, dragOver, order, splitAfter, isMobile, dpi } = this.state;
+    const { fileName, pages, loading, error, generating, progressText, downloadFiles, dragOver, order, splitAfter, isMobile, dpi, sourceDpi } = this.state;
     const thumbsLimited = pages.length > 40;
     const totalPagesCount = pages.length;
     const accent = '#5980a6';
@@ -520,12 +580,32 @@ class Component extends DCLogic {
       preventDefault: (e) => e.preventDefault(),
       renderItems,
       generateDisabled: disabled,
-      dpiOptions: [
-        { label: '72 DPI (screen)',        checked: dpi === '72',  onSelect: this.setDpi72  },
-        { label: '144 DPI (retina)',       checked: dpi === '144', onSelect: this.setDpi144 },
-        { label: '288 DPI (print quality)',checked: dpi === '288', onSelect: this.setDpi288 },
-        { label: '576 DPI (archival)',     checked: dpi === '576', onSelect: this.setDpi576 },
-      ].map((o) => ({ ...o, bg: o.checked ? accent : 'transparent', color: o.checked ? '#f2f2f3' : '#1d1f20' })),
+      hasSourceDpiNote: sourceDpi !== null && !!fileName,
+      sourceDpiNote: sourceDpi === 0
+        ? '✓ Vector PDF — all output files will be perfect vector copies, no quality loss.'
+        : sourceDpi > 0
+        ? `✓ Raster PDF detected at ~${sourceDpi} DPI. "Source quality" = lossless copy. Lower options re-render the pages at that DPI.`
+        : '',
+      sourceDpiNoteColor: sourceDpi === 0 ? '#2d5a3d' : '#2c455d',
+      sourceDpiNoteBg: sourceDpi === 0 ? '#f0f7f0' : '#eef6ff',
+      dpiOptions: (() => {
+        if (sourceDpi === null) return [];
+        if (sourceDpi === 0) return [
+          { label: 'Vector — lossless copy', value: 'lossless', checked: true, onSelect: () => {}, bg: accent, color: '#f2f2f3' },
+        ];
+        const ALL_DPIS = [576, 288, 144, 72];
+        const LABELS = { 576: 'archival', 288: 'print quality', 144: 'retina', 72: 'screen' };
+        const opts = [
+          { label: `Source quality (~${sourceDpi} DPI) — lossless`, value: 'lossless' },
+          ...ALL_DPIS.filter((d) => d < sourceDpi - 20).map((d) => ({ label: `${d} DPI (${LABELS[d]})`, value: String(d) })),
+        ];
+        return opts.map((o) => ({
+          ...o, checked: dpi === o.value,
+          onSelect: () => this.setDpi(o.value),
+          bg: dpi === o.value ? accent : 'transparent',
+          color: dpi === o.value ? '#f2f2f3' : '#1d1f20',
+        }));
+      })(),
       generateCursor: disabled ? 'not-allowed' : 'pointer',
       generateOpacity: disabled ? 0.45 : 1,
       generateLabel,
