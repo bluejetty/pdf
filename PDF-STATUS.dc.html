@@ -80,7 +80,10 @@
           <b>File:</b> title, author, creator app, producer, creation &amp; modification dates, PDF version, file size, linearized, bookmarks, attachments.<br/>
           <b>Per page:</b> named size &amp; dimensions, rotation, estimated DPI, image count, vector paths, flat status, annotations, form fields.
         </div>
-        <div style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(29,31,32,0.4); margin-bottom:6px;">Flat status scale</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+          <div style="font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(29,31,32,0.4);">Flat status scale</div>
+          <button onClick="{{ clearPage }}" style="border:1px solid rgba(29,31,32,0.22); background:#fff; padding:4px 14px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:12px; color:rgba(29,31,32,0.55); text-transform:uppercase; cursor:pointer; letter-spacing:0.05em;">CLEAR</button>
+        </div>
         <div style="display:flex; flex-direction:column; gap:5px;">
           <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#3d6b4f; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>1 — VECTOR PDF</b> · Live vector, text and/or form fields.</div></div>
           <div style="display:flex; align-items:center; gap:10px;"><div style="width:10px; height:10px; background:#7a5c1e; flex-shrink:0;"></div><div style="font-size:12px; color:rgba(29,31,32,0.65);"><b>2 — MIXED</b> · Raster and live content on the same page or across pages.</div></div>
@@ -164,9 +167,6 @@
               </sc-for>
             </tbody>
           </table>
-        </div>
-        <div style="padding:9px 14px; border-top:1px solid rgba(29,31,32,0.08); display:flex; justify-content:flex-end;">
-          <button onClick="{{ clearPage }}" style="border:1px solid rgba(29,31,32,0.2); background:none; padding:6px 16px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:13px; color:rgba(29,31,32,0.55); text-transform:uppercase; cursor:pointer; letter-spacing:0.04em;" style-hover="color:#8a2c2c; border-color:#8a2c2c;">CLEAR / ANALYSE NEW FILE</button>
         </div>
       </div>
 
