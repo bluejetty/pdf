@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="./shared-file-store.js"></script>
+  <style>
+    .thumb-strip::-webkit-scrollbar { height: 6px; }
+    .thumb-strip::-webkit-scrollbar-track { background: #c0c0c0; }
+    .thumb-strip::-webkit-scrollbar-thumb { background: #888; border-radius: 3px; }
+    .page-area::-webkit-scrollbar { width: 8px; height: 8px; }
+    .page-area::-webkit-scrollbar-track { background: #666; }
+    .page-area::-webkit-scrollbar-thumb { background: #999; border-radius: 4px; }
+  </style>
+</helmet>
+<div style="min-height:100vh; background:#fff; font-family:'Barlow',system-ui,sans-serif; color:#1d1f20; display:flex; justify-content:center; padding:{{ outerPadding }}; font-size:15px;">
+  <div style="max-width:1000px; width:100%;">
+    <dc-import name="Notepad" hint-size="100%,60px" storage-key="sharedNotepad"></dc-import>
+
+    <div style="font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:22px; letter-spacing:0.02em; text-transform:uppercase; color:#1d1f20; margin:2px 0 10px; text-align:center;">PDF-VIEWER</div>
+
+    <dc-import name="DropBox" hint-size="100%,165px"
+      headline="DROP-BOX"
+      box-padding="16px 20px"
+      box-margin-bottom="6px"
+      file-types-label="PDF"
+      accept-types=".pdf,application/pdf"
+      url-placeholder="Or paste a PDF URL…"
+      has-file-name="{{ true }}"
+      file-name="{{ fileName }}"
+      drop-border-color="{{ dropBorderColor }}"
+      drop-bg="{{ dropBg }}"
+      on-drag-over="{{ onDragOver }}"
+      on-drag-leave="{{ onDragLeave }}"
+      on-drop="{{ onDrop }}"
+      on-dropzone-click="{{ onDropzoneClick }}"
+      file-input-ref="{{ fileInputRef }}"
+      on-file-input="{{ onFileInput }}"
+      url-input="{{ urlInput }}"
+      on-url-input-change="{{ onUrlInputChange }}"
+      load-from-url="{{ loadFromUrl }}"
+      stop-propagation="{{ stopPropagation }}"
+      on-paste-click="{{ onPasteClick }}"
+    ></dc-import>
+
+    <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 18px; border:1px solid #b23b3b; color:#8a2c2c; font-size:14px; margin-bottom:6px;">{{ error }}</div>
+    </sc-if>
+
+    <sc-if value="{{ hasPages }}" hint-placeholder-val="{{ false }}">
+
+      <!-- ── Thumbnail gallery strip ── -->
+      <div class="thumb-strip" style="overflow-x:auto; display:flex; gap:8px; padding:10px 12px; background:#c8c8c8; border:1px solid rgba(29,31,32,0.16); border-bottom:none; align-items:flex-end; min-height:{{ thumbStripHeight }}px;">
+        <sc-for list="{{ thumbs }}" as="t" hint-placeholder-count="6">
+          <div onClick="{{ t.onClick }}" style="flex-shrink:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+            <sc-if value="{{ t.ready }}" hint-placeholder-val="{{ true }}">
+              <img src="{{ t.dataUrl }}" style="display:block; width:{{ t.dispW }}px; height:{{ t.dispH }}px; object-fit:contain; box-shadow:{{ t.shadow }}; border:{{ t.border }};" />
+            </sc-if>
+            <sc-if value="{{ t.notReady }}" hint-placeholder-val="{{ false }}">
+              <div style="width:{{ t.dispW }}px; height:{{ t.dispH }}px; background:#aaa; border:2px solid rgba(29,31,32,0.1);"></div>
+            </sc-if>
+            <div style="font-size:10px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; color:{{ t.pageNumColor }}; line-height:1;">{{ t.page }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ thumbsGenerating }}" hint-placeholder-val="{{ false }}">
+          <div style="flex-shrink:0; display:flex; align-items:center; padding:0 10px 18px; font-size:11px; color:rgba(29,31,32,0.5); font-family:'Barlow Condensed',system-ui,sans-serif; white-space:nowrap; letter-spacing:0.04em;">{{ thumbsProgressLabel }}</div>
+        </sc-if>
+      </div>
+
+      <!-- ── Main viewer ── -->
+      <div style="border:1px solid rgba(29,31,32,0.16); overflow:hidden;">
+        <!-- Toolbar -->
+        <div style="display:flex; align-items:center; gap:6px; padding:8px 12px; background:#f7f7f8; border-bottom:1px solid rgba(29,31,32,0.12); flex-wrap:wrap;">
+          <button onClick="{{ viewerPrev }}" style="border:1px solid rgba(29,31,32,0.2); background:#fff; padding:5px 14px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:13px; cursor:pointer; color:#1d1f20; opacity:{{ viewerPrevOpacity }};" style-hover="background:#eef6ff; border-color:#5980a6;">← Prev</button>
+          <span style="font-size:14px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; min-width:90px; text-align:center; color:#1d1f20;">{{ viewerPage }} / {{ viewerTotal }}</span>
+          <button onClick="{{ viewerNext }}" style="border:1px solid rgba(29,31,32,0.2); background:#fff; padding:5px 14px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:13px; cursor:pointer; color:#1d1f20; opacity:{{ viewerNextOpacity }};" style-hover="background:#eef6ff; border-color:#5980a6;">Next →</button>
+          <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+            <button onClick="{{ viewerZoomOut }}" style="border:1px solid rgba(29,31,32,0.2); background:#fff; padding:5px 12px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:16px; cursor:pointer; color:#1d1f20; opacity:{{ viewerZoomOutOpacity }};" style-hover="background:#eef6ff; border-color:#5980a6;">−</button>
+            <span style="font-size:12px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; min-width:44px; text-align:center; color:rgba(29,31,32,0.55);">{{ viewerZoomLabel }}</span>
+            <button onClick="{{ viewerZoomIn }}" style="border:1px solid rgba(29,31,32,0.2); background:#fff; padding:5px 12px; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:16px; cursor:pointer; color:#1d1f20; opacity:{{ viewerZoomInOpacity }};" style-hover="background:#eef6ff; border-color:#5980a6;">+</button>
+          </div>
+        </div>
+        <!-- Page canvas area -->
+        <div class="page-area" style="overflow:auto; max-height:700px; background:#777; padding:20px; display:flex; justify-content:center; align-items:flex-start;">
+          <sc-if value="{{ viewerRendering }}" hint-placeholder-val="{{ false }}">
+            <div style="color:rgba(255,255,255,0.5); font-size:12px; padding:80px 0; font-family:'Barlow Condensed',system-ui,sans-serif; letter-spacing:0.08em; text-transform:uppercase;">Rendering…</div>
+          </sc-if>
+          <sc-if value="{{ viewerHasPage }}" hint-placeholder-val="{{ true }}">
+            <img src="{{ viewerDataUrl }}" style="display:block; box-shadow:0 4px 20px rgba(0,0,0,0.45); flex-shrink:0;" />
+          </sc-if>
+        </div>
+      </div>
+
+    </sc-if>
+
+    <div style="margin-top:14px;">
+      <dc-import name="ToolHeader" activeTool="PDF-VIEWER" on-clear="{{ clearPage }}" clear-label="CLICK TO CLEAR DROP-BOX" hint-size="100%,120px"></dc-import>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const THUMB_MAX_PX = 120;
+const THUMB_CAP    = 100;
+const ZOOM_STEPS   = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+class Component extends DCLogic {
+  state = {
+    fileName: '',
+    pageCount: 0,
+    viewerPage: 1,
+    viewerZoom: 1.0,
+    viewerDataUrl: '',
+    viewerRendering: false,
+    thumbs: [],
+    thumbsGenerating: false,
+    thumbsDone: 0,
+    error: null,
+    dragOver: false,
+    urlInput: '',
+    isMobile: typeof window !== 'undefined' && window.innerWidth < 640,
+  };
+
+  fileInputRef = React.createRef();
+  pdfDoc = null;
+
+  clearPage = () => {
+    if (!confirm('Clear file? This cannot be undone.')) return;
+    this.pdfDoc = null;
+    this.setState({ fileName: '', pageCount: 0, viewerPage: 1, viewerZoom: 1.0, viewerDataUrl: '', viewerRendering: false, thumbs: [], thumbsGenerating: false, thumbsDone: 0, error: null });
+    if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('pdfviewer');
+  };
+
+  componentDidMount() {
+    if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    this.consumeHandoff();
+    if (window.SharedFileStore) window.SharedFileStore.loadSharedFile('pdfviewer').then((f) => { if (f) this.handleFile(f, true); });
+    this._blockNav = (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; };
+    window.addEventListener('dragover', this._blockNav);
+    window.addEventListener('drop', this._blockNav);
+    this._onResize = () => { const m = window.innerWidth < 640; if (m !== this.state.isMobile) this.setState({ isMobile: m }); };
+    window.addEventListener('resize', this._onResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('dragover', this._blockNav);
+    window.removeEventListener('drop', this._blockNav);
+    window.removeEventListener('resize', this._onResize);
+  }
+
+  async consumeHandoff() {
+    try {
+      const raw = localStorage.getItem('pdfImageManagerHandoff');
+      if (!raw) return;
+      localStorage.removeItem('pdfImageManagerHandoff');
+      const data = JSON.parse(raw);
+      const match = (data.files || []).find((f) => f.type === 'application/pdf');
+      if (!match) return;
+      const blob = await (await fetch(match.dataUrl)).blob();
+      this.handleFile(new File([blob], match.name, { type: match.type }));
+    } catch (e) { console.warn('Handoff failed', e); }
+  }
+
+  onDropzoneClick = () => this.fileInputRef.current && this.fileInputRef.current.click();
+  onDragOver  = (e) => { e.preventDefault(); this.setState({ dragOver: true }); };
+  onDragLeave = (e) => { e.preventDefault(); this.setState({ dragOver: false }); };
+  onDrop = (e) => {
+    e.preventDefault(); this.setState({ dragOver: false });
+    const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) this.handleFile(f);
+  };
+  stopPropagation = (e) => e.stopPropagation();
+  onUrlInputChange = (e) => this.setState({ urlInput: e.target.value });
+  onPasteClick = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) for (const type of item.types) if (type === 'application/pdf') {
+          const blob = await item.getType(type);
+          this.handleFile(new File([blob], 'pasted.pdf', { type })); return;
+        }
+      }
+      alert('No PDF found in clipboard.');
+    } catch (e) { alert('Could not read clipboard.'); }
+  };
+  async loadFromUrl() {
+    const url = (this.state.urlInput || '').trim(); if (!url) return;
+    try {
+      const res = await fetch(url); if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const name = (url.split('/').pop() || 'file.pdf').split('?')[0] || 'file.pdf';
+      this.setState({ urlInput: '' });
+      this.handleFile(new File([blob], name, { type: blob.type || 'application/pdf' }));
+    } catch (e) { alert('Could not load that URL: ' + e.message); }
+  }
+  onFileInput = (e) => { const f = e.target.files && e.target.files[0]; if (f) this.handleFile(f); };
+
+  async handleFile(file, fromShared) {
+    this.setState({ error: null, thumbs: [], viewerDataUrl: '', viewerRendering: false, viewerPage: 1, viewerZoom: 1.0, thumbsGenerating: false, thumbsDone: 0 });
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      this.setState({ error: 'Please select a valid PDF file.' }); return;
+    }
+    try {
+      if (!window.pdfjsLib) throw new Error('PDF engine failed to load.');
+      const ab = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: ab }).promise;
+      this.pdfDoc = pdf;
+      const pageCount = pdf.numPages;
+      this.setState({ fileName: file.name, pageCount });
+      if (!fromShared && window.SharedFileStore) window.SharedFileStore.saveSharedFile(file, 'pdfviewer');
+      // Render page 1 immediately, then build thumbs
+      await this._renderPage(1, 1.0);
+      this._generateThumbs(pdf, pageCount);
+    } catch (e) {
+      this.setState({ error: 'Error loading PDF: ' + (e.message || 'Could not read file.') });
+    }
+  }
+
+  async _generateThumbs(pdf, totalPages) {
+    const cap = Math.min(totalPages, THUMB_CAP);
+    this.setState({ thumbsGenerating: true });
+    const thumbs = [];
+    for (let i = 1; i <= cap; i++) {
+      try {
+        const page = await pdf.getPage(i);
+        const vp0 = page.getViewport({ scale: 1 });
+        const scale = THUMB_MAX_PX / Math.max(vp0.width, vp0.height);
+        const tvp = page.getViewport({ scale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(tvp.width);
+        canvas.height = Math.round(tvp.height);
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: tvp }).promise;
+        thumbs.push({ page: i, dataUrl: canvas.toDataURL('image/jpeg', 0.85), dispW: canvas.width, dispH: canvas.height, ready: true });
+        page.cleanup();
+      } catch (e) {
+        thumbs.push({ page: i, dataUrl: '', dispW: Math.round(THUMB_MAX_PX * 0.77), dispH: THUMB_MAX_PX, ready: false });
+      }
+      const done = i === cap;
+      this.setState({ thumbs: [...thumbs], thumbsDone: i, thumbsGenerating: !done });
+    }
+  }
+
+  async _renderPage(page, zoom) {
+    if (!this.pdfDoc) return;
+    this.setState({ viewerRendering: true });
+    try {
+      const p = await this.pdfDoc.getPage(page);
+      const vp = p.getViewport({ scale: zoom * 1.5 });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(vp.width);
+      canvas.height = Math.round(vp.height);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await p.render({ canvasContext: ctx, viewport: vp }).promise;
+      this.setState({ viewerDataUrl: canvas.toDataURL('image/jpeg', 0.92), viewerRendering: false, viewerPage: page, viewerZoom: zoom });
+      p.cleanup();
+    } catch (e) { this.setState({ viewerRendering: false }); }
+  }
+
+  viewerPrev  = () => { const p = Math.max(1, this.state.viewerPage - 1); if (p !== this.state.viewerPage) this._renderPage(p, this.state.viewerZoom); };
+  viewerNext  = () => { const p = Math.min(this.state.pageCount, this.state.viewerPage + 1); if (p !== this.state.viewerPage) this._renderPage(p, this.state.viewerZoom); };
+  viewerZoomIn  = () => { const i = ZOOM_STEPS.indexOf(this.state.viewerZoom); const z = ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, i + 1)]; if (z !== this.state.viewerZoom) this._renderPage(this.state.viewerPage, z); };
+  viewerZoomOut = () => { const i = ZOOM_STEPS.indexOf(this.state.viewerZoom); const z = ZOOM_STEPS[Math.max(0, i - 1)]; if (z !== this.state.viewerZoom) this._renderPage(this.state.viewerPage, z); };
+  goToPage = (n) => { if (n !== this.state.viewerPage) this._renderPage(n, this.state.viewerZoom); };
+
+  renderVals() {
+    const { fileName, pageCount, viewerPage, viewerZoom, viewerDataUrl, viewerRendering, thumbs, thumbsGenerating, thumbsDone, error, dragOver, isMobile } = this.state;
+    const hasPages = pageCount > 0;
+    const cap = Math.min(pageCount, THUMB_CAP);
+
+    const thumbList = thumbs.map((t) => {
+      const isCurrent = t.page === viewerPage;
+      return {
+        ...t,
+        notReady: !t.ready,
+        border: isCurrent ? '2px solid #5980a6' : '2px solid rgba(29,31,32,0.15)',
+        shadow: isCurrent ? '0 0 0 2px #5980a6, 0 2px 6px rgba(0,0,0,0.35)' : '0 1px 4px rgba(0,0,0,0.3)',
+        pageNumColor: isCurrent ? '#5980a6' : 'rgba(29,31,32,0.4)',
+        onClick: () => this.goToPage(t.page),
+      };
+    });
+
+    return {
+      isMobile, fileName, error, hasPages,
+      outerPadding: isMobile ? '10px 14px 28px' : '18px 24px 56px',
+      dropBorderColor: dragOver ? '#5980a6' : 'rgba(29,31,32,0.16)',
+      dropBg: dragOver ? '#eef6ff' : '#f2f2f3',
+      fileInputRef: this.fileInputRef,
+      onDropzoneClick: this.onDropzoneClick,
+      onDragOver: this.onDragOver,
+      onDragLeave: this.onDragLeave,
+      onDrop: this.onDrop,
+      onFileInput: this.onFileInput,
+      urlInput: this.state.urlInput,
+      onUrlInputChange: this.onUrlInputChange,
+      loadFromUrl: () => this.loadFromUrl(),
+      stopPropagation: this.stopPropagation,
+      onPasteClick: this.onPasteClick,
+      clearPage: this.clearPage,
+      thumbs: thumbList,
+      thumbsGenerating,
+      thumbsProgressLabel: `Generating ${thumbsDone} / ${cap}…`,
+      thumbStripHeight: THUMB_MAX_PX + 32,
+      viewerPage, viewerTotal: pageCount,
+      viewerZoomLabel: Math.round(viewerZoom * 100) + '%',
+      viewerDataUrl, viewerRendering,
+      viewerHasPage: !!viewerDataUrl && !viewerRendering,
+      viewerPrev: this.viewerPrev,
+      viewerNext: this.viewerNext,
+      viewerZoomIn: this.viewerZoomIn,
+      viewerZoomOut: this.viewerZoomOut,
+      viewerPrevOpacity: viewerPage <= 1 ? 0.3 : 1,
+      viewerNextOpacity: viewerPage >= pageCount ? 0.3 : 1,
+      viewerZoomOutOpacity: viewerZoom <= ZOOM_STEPS[0] ? 0.3 : 1,
+      viewerZoomInOpacity: viewerZoom >= ZOOM_STEPS[ZOOM_STEPS.length - 1] ? 0.3 : 1,
+    };
+  }
+}
+</script>
+</body>
+</html>
