@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;700&family=Barlow+Condensed:wght@400;600&display=swap" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="./shared-file-store.js"></script>
+  <style>
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    a { color: #5980a6; }
+    a:hover { color: #416180; }
+  </style>
+</helmet>
+<div style="min-height:100vh; background:#fff; font-family:'Barlow',system-ui,sans-serif; color:#1d1f20; display:flex; justify-content:center; padding:{{ outerPadding }}; font-size:15px;">
+  <div style="max-width:900px; width:100%;">
+<dc-import name="Notepad" hint-size="100%,60px" storage-key="sharedNotepad"></dc-import>
+
+<div style="font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:22px; letter-spacing:0.02em; text-transform:uppercase; color:#1d1f20; margin:2px 0 10px; text-align:center;">PDF-COLOR-TO-BW</div>
+
+<dc-import name="DropBox" hint-size="100%,165px"
+      headline="DROP-BOX"
+      box-padding="16px 20px"
+      box-margin-bottom="6px"
+      file-types-label="PDF"
+      accept-types=".pdf,application/pdf"
+      url-placeholder="Or paste a PDF URL…"
+      has-file-name="{{ true }}"
+      file-name="{{ fileName }}"
+      drop-border-color="{{ dropBorderColor }}"
+      drop-bg="{{ dropBg }}"
+      on-drag-over="{{ onDragOver }}"
+      on-drag-leave="{{ onDragLeave }}"
+      on-drop="{{ onDrop }}"
+      on-dropzone-click="{{ onDropzoneClick }}"
+      file-input-ref="{{ fileInputRef }}"
+      on-file-input="{{ onFileInput }}"
+      url-input="{{ urlInput }}"
+      on-url-input-change="{{ onUrlInputChange }}"
+      load-from-url="{{ loadFromUrl }}"
+      stop-propagation="{{ stopPropagation }}"
+      on-paste-click="{{ onPasteClick }}"
+    ></dc-import>
+
+    <sc-if value="{{ isMobile }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:14px; min-height:44px;">
+        <button onClick="{{ clearPage }}" style="border:none; background:none; padding:12px 6px; min-height:44px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:18px; color:#1d1f20; text-transform:uppercase; white-space:nowrap;" style-hover="color:#8a2c2c;">CLICK TO CLEAR DROP-BOX</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ error }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 18px; border:1px solid #b23b3b; color:#8a2c2c; font-size:14px; margin-bottom:16px;">{{ error }}</div>
+    </sc-if>
+
+    <sc-if value="{{ generating }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid rgba(29,31,32,0.16); padding:18px; margin-bottom:0;">
+        <div style="background:#e9e9ea; height:6px; margin-bottom:10px;">
+          <div style="background:#5980a6; height:100%; width:{{ progressPercent }}%; transition:width 0.3s ease;"></div>
+        </div>
+        <div style="text-align:center; color:rgba(29,31,32,0.6); font-size:13px;">{{ progressText }}</div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ noPages }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative; border:1px solid rgba(29,31,32,0.16); background:#fff; margin-top:2px; margin-bottom:0; display:flex; flex-direction:column; min-height:180px;">
+        <div style="font-size:11px; letter-spacing:0.08em; text-transform:uppercase; color:rgba(29,31,32,0.6); padding:14px 14px 0; margin-bottom:8px;">Preview window</div>
+        <div style="flex:1; display:flex; align-items:center; justify-content:center; padding:0 14px 14px;">
+          <div style="font-size:13px; color:rgba(29,31,32,0.45); text-align:center;">Drop a colour PDF — every page is converted to greyscale at its original page size, so nothing is resized or cropped</div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ hasPages }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-family:'Barlow Condensed',system-ui,sans-serif; font-weight:600; font-size:15px;">Preview <span style="font-weight:400; color:rgba(29,31,32,0.5); font-size:13px;">· converted to greyscale</span></div>
+        <div style="font-size:11px; color:#2c455d; background:#eef6ff; padding:3px 10px;">{{ pageCountLabel }}</div>
+      </div>
+      <div style="background:#1d2d3d; border:1px solid rgba(29,31,32,0.16); padding:20px; min-height:200px; display:flex; justify-content:center; align-items:flex-start; gap:16px; flex-wrap:wrap;">
+        <sc-for list="{{ visiblePages }}" as="page" hint-placeholder-count="2">
+          <div style="position:relative; background:white; box-shadow:0 4px 20px rgba(0,0,0,0.4); overflow:hidden; flex:1 1 0; max-width:calc(50% - 8px); min-width:160px;">
+            <img src="{{ page.thumbDataUrl }}" style="display:block; width:100%; height:auto;" />
+            <div style="position:absolute; bottom:8px; right:10px; background:rgba(29,31,32,0.85); color:#f2f2f3; font-size:11px; padding:3px 10px; font-weight:600;">Page {{ page.displayIndex }} · {{ page.srcSize }}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex; justify-content:center; align-items:center; gap:16px; margin-top:14px;">
+        <button onClick="{{ prevPage }}" disabled="{{ prevDisabled }}" style="background:transparent; color:#1d1f20; border:1px solid rgba(29,31,32,0.16); padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;">Prev</button>
+        <div style="font-size:13px; color:rgba(29,31,32,0.6); min-width:100px; text-align:center;">{{ navInfo }}</div>
+        <button onClick="{{ nextPage }}" disabled="{{ nextDisabled }}" style="background:transparent; color:#1d1f20; border:1px solid rgba(29,31,32,0.16); padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer;">Next</button>
+      </div>
+      <p style="text-align:center; color:rgba(29,31,32,0.5); font-size:12px; margin-top:10px;">{{ modeNote }}</p>
+    </sc-if>
+
+    <dc-import name="SaveBox" hint-size="100%,60px"
+      is-mobile="{{ isMobile }}"
+      label="Output quality"
+      radio-name="bwQuality"
+      options="{{ dpiOptions }}"
+      show-button="{{ true }}"
+      button-label="{{ saveLabel }}"
+      on-button-click="{{ generate }}"
+      button-disabled="{{ saveDisabled }}"
+      button-cursor="{{ saveCursor }}"
+      button-opacity="{{ saveOpacity }}"
+    ></dc-import>
+
+    <div style="margin-top:6px;">
+      <dc-import name="SaveBox" hint-size="100%,44px"
+        is-mobile="{{ isMobile }}"
+        label="Tone"
+        radio-name="bwTone"
+        options="{{ toneOptions }}"
+        show-button="{{ false }}"
+      ></dc-import>
+    </div>
+
+        <dc-import name="ToolHeader" activeTool="PDF-COLOR-TO-BW" on-clear="{{ clearPage }}" clear-label="CLICK TO CLEAR DROP-BOX" hint-size="100%,120px"></dc-import>
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+// Render resolutions in DPI (1pt = 1/72 inch)
+const QUALITIES = {
+  'screen':   { label: 'Screen  150 dpi',    dpi: 150, jpeg: 0.82 },
+  'standard': { label: 'Standard  200 dpi',  dpi: 200, jpeg: 0.88 },
+  'high':     { label: 'High  300 dpi',      dpi: 300, jpeg: 0.92 },
+};
+
+// Guard against browser canvas limits on very large sheets (e.g. E-size CAD at 300dpi)
+const MAX_CANVAS_DIM = 12000;
+const MAX_CANVAS_PIXELS = 26000000;
+
+class Component extends DCLogic {
+  state = {
+    fileName: '',
+    pages: [],
+    previewIndex: 0,
+    quality: 'standard',
+    tone: 'normal',
+    generating: false,
+    progressPercent: 0,
+    progressText: '',
+    error: null,
+    dragOver: false,
+    urlInput: '',
+    isMobile: typeof window !== 'undefined' && window.innerWidth < 640,
+  };
+
+  fileInputRef = React.createRef();
+  currentFile = null;
+  PAGES_PER_VIEW = 2;
+
+  clearPage = () => {
+    if (!confirm('Clear all dropped files and inputs? This cannot be undone.')) return;
+    this.currentFile = null;
+    this.setState({ fileName: '', pages: [], previewIndex: 0, error: null, progressPercent: 0, progressText: '' });
+    if (window.SharedFileStore) window.SharedFileStore.clearSharedFile('colortobw');
+  };
+
+  componentDidMount() {
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    this.consumeHandoff();
+    if (window.SharedFileStore) {
+      window.SharedFileStore.loadSharedFile('colortobw').then((f) => { if (f) this.handleFile(f, true); });
+    }
+    this._blockNav = (e) => { e.preventDefault(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; };
+    window.addEventListener('dragover', this._blockNav);
+    window.addEventListener('drop', this._blockNav);
+    this._onResize = () => {
+      const isMobile = window.innerWidth < 640;
+      if (isMobile !== this.state.isMobile) this.setState({ isMobile });
+    };
+    window.addEventListener('resize', this._onResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('dragover', this._blockNav);
+    window.removeEventListener('drop', this._blockNav);
+    window.removeEventListener('resize', this._onResize);
+  }
+
+  async consumeHandoff() {
+    try {
+      const raw = localStorage.getItem('pdfImageManagerHandoff');
+      if (!raw) return;
+      localStorage.removeItem('pdfImageManagerHandoff');
+      const data = JSON.parse(raw);
+      const match = (data.files || []).find((f) => f.type === 'application/pdf');
+      if (!match) return;
+      const blob = await (await fetch(match.dataUrl)).blob();
+      this.handleFile(new File([blob], match.name, { type: match.type }));
+    } catch (err) { console.warn('Handoff load failed', err); }
+  }
+
+  onDropzoneClick = () => this.fileInputRef.current && this.fileInputRef.current.click();
+  onDragOver = (e) => { e.preventDefault(); this.setState({ dragOver: true }); };
+  onDragLeave = (e) => { e.preventDefault(); this.setState({ dragOver: false }); };
+  onDrop = (e) => {
+    e.preventDefault();
+    this.setState({ dragOver: false });
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) this.handleFile(file);
+  };
+  stopPropagation = (e) => e.stopPropagation();
+  onUrlInputChange = (e) => this.setState({ urlInput: e.target.value });
+
+  onPasteClick = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          for (const type of item.types) {
+            if (type === 'application/pdf') {
+              const blob = await item.getType(type);
+              this.handleFile(new File([blob], 'pasted_document.pdf', { type }));
+              return;
+            }
+          }
+        }
+      }
+      alert('Clipboard access denied or no PDF found.');
+    } catch (err) { alert('Could not read clipboard.'); }
+  };
+
+  async loadFromUrl() {
+    const url = (this.state.urlInput || '').trim();
+    if (!url) return;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      const name = (url.split('/').pop() || 'file.pdf').split('?')[0] || 'file.pdf';
+      this.setState({ urlInput: '' });
+      this.handleFile(new File([blob], name, { type: blob.type || 'application/pdf' }));
+    } catch (err) { alert('Could not load that URL: ' + err.message); }
+  }
+
+  onFileInput = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) this.handleFile(file);
+  };
+
+  prevPage = () => {
+    if (this.state.previewIndex > 0) this.setState((s) => ({ previewIndex: s.previewIndex - this.PAGES_PER_VIEW }));
+  };
+  nextPage = () => {
+    if (this.state.previewIndex + this.PAGES_PER_VIEW < this.state.pages.length) {
+      this.setState((s) => ({ previewIndex: s.previewIndex + this.PAGES_PER_VIEW }));
+    }
+  };
+
+  setQuality = (key) => () => { this.setState({ quality: key }); };
+  setTone = (key) => () => {
+    this.setState({ tone: key }, () => { if (this.currentFile) this.handleFile(this.currentFile, true); });
+  };
+
+  ptToIn(pt) { return (pt / 72).toFixed(1) + '"'; }
+  sizeLabel(w, h) { return `${this.ptToIn(w)}×${this.ptToIn(h)}`; }
+
+  // Clamp a render scale so the resulting canvas stays inside browser limits
+  safeScale(srcW, srcH, desiredScale) {
+    let scale = desiredScale;
+    const maxByDim = Math.min(MAX_CANVAS_DIM / srcW, MAX_CANVAS_DIM / srcH);
+    if (scale > maxByDim) scale = maxByDim;
+    const px = srcW * scale * srcH * scale;
+    if (px > MAX_CANVAS_PIXELS) scale = Math.sqrt(MAX_CANVAS_PIXELS / (srcW * srcH));
+    return scale;
+  }
+
+  // In-place greyscale of a canvas using Rec.709 luminance weights.
+  // tone 'boost' applies a mild S-curve so faint colour ink stays legible in grey.
+  greyscaleCanvas(ctx, w, h, tone) {
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    const boost = tone === 'boost';
+    let lut = null;
+    if (boost) {
+      lut = new Uint8ClampedArray(256);
+      for (let v = 0; v < 256; v++) {
+        const n = v / 255;
+        // gentle contrast curve, pivot at mid grey
+        const c = n < 0.5 ? 0.5 * Math.pow(n * 2, 1.35) : 1 - 0.5 * Math.pow((1 - n) * 2, 1.35);
+        lut[v] = Math.round(c * 255);
+      }
+    }
+    for (let i = 0; i < d.length; i += 4) {
+      let y = (d[i] * 0.2126 + d[i + 1] * 0.7152 + d[i + 2] * 0.0722) | 0;
+      if (boost) y = lut[y];
+      d[i] = y; d[i + 1] = y; d[i + 2] = y;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  async handleFile(file, fromShared) {
+    this.setState({ error: null });
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      this.setState({ error: 'Please select a valid PDF file.' });
+      return;
+    }
+    this.currentFile = file;
+    this.setState({ fileName: file.name, pages: [] });
+
+    try {
+      if (!window.pdfjsLib) throw new Error('PDF engine failed to load.');
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const { tone } = this.state;
+      const maxThumbW = 400;
+      const pages = [];
+      const THUMB_LIMIT = 40;
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        if (pdf.numPages > THUMB_LIMIT && i > THUMB_LIMIT) {
+          if (!this._thumbPlaceholder) {
+            const ph = document.createElement('canvas');
+            ph.width = 120; ph.height = 155;
+            const pc = ph.getContext('2d');
+            pc.fillStyle = '#f2f2f3'; pc.fillRect(0, 0, 120, 155);
+            pc.strokeStyle = 'rgba(29,31,32,0.16)'; pc.strokeRect(0.5, 0.5, 119, 154);
+            this._thumbPlaceholder = ph.toDataURL('image/png');
+          }
+          pages.push({ index: i, thumbDataUrl: this._thumbPlaceholder, srcSize: '…' });
+          continue;
+        }
+
+        const page = await pdf.getPage(i);
+        const vp72 = page.getViewport({ scale: 1 });
+        const srcW = vp72.width, srcH = vp72.height;
+
+        const thumbScale = this.safeScale(srcW, srcH, maxThumbW / srcW);
+        const renderVP = page.getViewport({ scale: thumbScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(renderVP.width));
+        canvas.height = Math.max(1, Math.round(renderVP.height));
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: renderVP }).promise;
+        this.greyscaleCanvas(ctx, canvas.width, canvas.height, tone);
+
+        pages.push({
+          index: i,
+          thumbDataUrl: canvas.toDataURL('image/jpeg', 0.85),
+          srcSize: this.sizeLabel(srcW, srcH),
+        });
+        page.cleanup();
+      }
+      this.setState({ pages, previewIndex: 0 });
+      if (!fromShared && window.SharedFileStore) window.SharedFileStore.saveSharedFile(file, 'colortobw');
+    } catch (err) {
+      console.error(err);
+      this.setState({ error: 'Error loading preview: ' + (err.message || 'Could not read PDF.') });
+    }
+  }
+
+  async generate() {
+    if (!this.currentFile) return;
+    const { quality, tone } = this.state;
+    const q = QUALITIES[quality];
+    this.setState({ error: null, generating: true, progressPercent: 5, progressText: 'Loading PDF…' });
+    try {
+      const arrayBuffer = await this.currentFile.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const totalPages = pdf.numPages;
+      const { jsPDF } = window.jspdf;
+      let outputPdf = null;
+
+      for (let i = 1; i <= totalPages; i++) {
+        const pct = 5 + ((i - 1) / totalPages) * 90;
+        this.setState({ progressPercent: pct, progressText: `Converting page ${i} of ${totalPages}…` });
+
+        const page = await pdf.getPage(i);
+        const vp72 = page.getViewport({ scale: 1 });
+        const srcW = vp72.width, srcH = vp72.height;
+
+        const renderScale = this.safeScale(srcW, srcH, q.dpi / 72);
+        const renderVP = page.getViewport({ scale: renderScale });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(renderVP.width));
+        canvas.height = Math.max(1, Math.round(renderVP.height));
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        await page.render({ canvasContext: ctx, viewport: renderVP }).promise;
+        this.greyscaleCanvas(ctx, canvas.width, canvas.height, tone);
+        const imgData = canvas.toDataURL('image/jpeg', q.jpeg);
+
+        // Output page keeps the ORIGINAL page size — nothing is scaled or cropped
+        if (i === 1) {
+          outputPdf = new jsPDF({
+            orientation: srcW > srcH ? 'landscape' : 'portrait',
+            unit: 'pt',
+            format: [srcW, srcH],
+            compress: true,
+          });
+        } else {
+          outputPdf.addPage([srcW, srcH], srcW > srcH ? 'landscape' : 'portrait');
+        }
+
+        outputPdf.addImage(imgData, 'JPEG', 0, 0, srcW, srcH, undefined, 'FAST');
+        page.cleanup();
+
+        // yield to the browser so the progress bar can paint on long documents
+        await new Promise((r) => setTimeout(r, 0));
+      }
+
+      this.setState({ progressPercent: 98, progressText: 'Finalizing…' });
+      const outputData = outputPdf.output('arraybuffer');
+      const blob = new Blob([outputData], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const baseName = this.currentFile.name.replace(/\.pdf$/i, '');
+      a.download = `${baseName}_BW.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      this.setState({ progressPercent: 100, progressText: 'Done! Download started.' });
+    } catch (err) {
+      console.error(err);
+      this.setState({ error: 'Error: ' + (err.message || 'Failed to convert PDF.'), progressPercent: 0, progressText: '' });
+    } finally {
+      this.setState({ generating: false });
+    }
+  }
+
+  renderVals() {
+    const { fileName, pages, previewIndex, quality, tone, generating, progressPercent, progressText, error, dragOver, isMobile } = this.state;
+    const totalPages = pages.length;
+    const saveDisabled = generating || !fileName || totalPages === 0;
+
+    const mkQuality = (key) => ({
+      label: QUALITIES[key].label,
+      checked: quality === key,
+      onSelect: this.setQuality(key),
+      bg: quality === key ? '#5980a6' : 'transparent',
+      color: quality === key ? '#f2f2f3' : '#1d1f20',
+    });
+    const mkTone = (key, label) => ({
+      label,
+      checked: tone === key,
+      onSelect: this.setTone(key),
+      bg: tone === key ? '#5980a6' : 'transparent',
+      color: tone === key ? '#f2f2f3' : '#1d1f20',
+    });
+
+    return {
+      isMobile,
+      fileName, error, generating, progressPercent, progressText,
+      hasPages: totalPages > 0,
+      noPages: totalPages === 0,
+      outerPadding: isMobile ? '10px 14px 28px' : '18px 24px 56px',
+      dropBorderColor: dragOver ? '#5980a6' : 'rgba(29,31,32,0.16)',
+      dropBg: dragOver ? '#eef6ff' : '#f2f2f3',
+      fileInputRef: this.fileInputRef,
+      onDropzoneClick: this.onDropzoneClick,
+      onDragOver: this.onDragOver,
+      onDragLeave: this.onDragLeave,
+      onDrop: this.onDrop,
+      onFileInput: this.onFileInput,
+      urlInput: this.state.urlInput,
+      onUrlInputChange: this.onUrlInputChange,
+      loadFromUrl: () => this.loadFromUrl(),
+      stopPropagation: this.stopPropagation,
+      onPasteClick: this.onPasteClick,
+      clearPage: this.clearPage,
+      pageCountLabel: `${totalPages} page${totalPages === 1 ? '' : 's'}`,
+      dpiOptions: ['screen','standard','high'].map(mkQuality),
+      toneOptions: [
+        mkTone('normal', 'Normal'),
+        mkTone('boost', 'Boost contrast'),
+      ],
+      generate: () => this.generate(),
+      saveDisabled,
+      saveLabel: generating ? 'CONVERTING…' : 'CONVERT & SAVE PDF',
+      saveCursor: saveDisabled ? 'not-allowed' : 'pointer',
+      saveOpacity: saveDisabled ? 0.45 : 1,
+      modeNote: (tone === 'boost'
+        ? 'Greyscale with boosted contrast — helps faint colour ink stay legible. '
+        : 'Standard greyscale using Rec.709 luminance weights. ')
+        + 'Original page sizes are preserved; text becomes part of the image.',
+      visiblePages: pages.slice(previewIndex, previewIndex + this.PAGES_PER_VIEW).map((p) => ({ ...p, displayIndex: p.index })),
+      navInfo: totalPages ? `Page ${previewIndex + 1}${previewIndex + this.PAGES_PER_VIEW > previewIndex + 1 ? '-' + Math.min(previewIndex + this.PAGES_PER_VIEW, totalPages) : ''} of ${totalPages}` : 'Page 0 of 0',
+      prevDisabled: previewIndex === 0,
+      nextDisabled: previewIndex + this.PAGES_PER_VIEW >= totalPages,
+      prevPage: this.prevPage,
+      nextPage: this.nextPage,
+    };
+  }
+}
+</script>
+</body>
+</html>
