@@ -68,31 +68,69 @@
               onDragStart="{{ item.onDragStart }}"
               onDragOver="{{ preventDefault }}"
               onDrop="{{ item.onDrop }}"
-              style="background:#fff; border:1px solid rgba(29,31,32,0.16); padding:10px; display:flex; align-items:center; gap:10px; cursor:grab;"
+              data-stitch-file="{{ item.name }}"
+              style="background:#fff; border:1px solid rgba(29,31,32,0.16); padding:10px; display:flex; flex-direction:column; gap:10px; cursor:grab;"
             >
-              <div style="color:rgba(29,31,32,0.4); font-size:16px; user-select:none;">☰</div>
-              <input type="checkbox" checked="{{ item.included }}" onChange="{{ item.toggleIncluded }}" style="width:17px; height:17px; cursor:pointer; accent-color:#5980a6;" />
-              <div style="width:64px; height:{{ item.previewHeight }}; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:#fff; border:1px solid rgba(29,31,32,0.16); overflow:hidden; position:relative; font-size:10px; color:rgba(29,31,32,0.55);">
-                <sc-if value="{{ item.hasObjectUrl }}" hint-placeholder-val="{{ false }}"><img src="{{ item.objectUrl }}" style="width:100%; height:100%; object-fit:contain; display:block;" /></sc-if>
-                <sc-if value="{{ item.isPdf }}" hint-placeholder-val="{{ false }}"><div style="font-weight:700; color:#5980a6; font-size:12px;">PDF</div></sc-if>
-                <sc-if value="{{ item.isText }}" hint-placeholder-val="{{ false }}"><div style="padding:4px; font-size:9px; line-height:1.2; overflow:hidden;">{{ item.snippet }}</div></sc-if>
-                <div style="position:absolute; bottom:2px; right:2px; font-size:9px; background:rgba(29,31,32,0.75); color:#f2f2f3; padding:1px 4px;">{{ item.pageLabel }}</div>
-              </div>
-              <div style="flex:1; display:flex; flex-direction:column; gap:5px; min-width:0;">
-                <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.name }}</div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  <select value="{{ item.pageSize }}" onChange="{{ item.setPageSize }}" style="font-size:12px; padding:4px 6px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;">
-                    <option value="8.5x11">8.5×11</option>
-                    <option value="11x17">11×17</option>
-                  </select>
-                  <select value="{{ item.orientation }}" onChange="{{ item.setOrientation }}" style="font-size:12px; padding:4px 6px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;">
-                    <option value="portrait">Portrait</option>
-                    <option value="landscape">Landscape</option>
-                  </select>
-                  <span style="font-size:10px; padding:2px 8px; background:#eef6ff; color:#2c455d;">{{ item.typeLabel }}</span>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="color:rgba(29,31,32,0.4); font-size:16px; user-select:none;" title="Drag to reorder">☰</div>
+                <input type="checkbox" checked="{{ item.allChecked }}" onChange="{{ item.toggleAll }}" title="{{ item.checkTitle }}" data-stitch-all style="width:17px; height:17px; cursor:pointer; accent-color:#5980a6;" />
+                <div style="flex:1; min-width:120px; display:flex; flex-direction:column; gap:2px;">
+                  <div style="font-weight:600; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ item.name }}</div>
+                  <div style="font-size:11px; color:rgba(29,31,32,0.6);">{{ item.countLabel }}</div>
                 </div>
+                <span style="font-size:10px; padding:2px 8px; background:#eef6ff; color:#2c455d;">{{ item.typeLabel }}</span>
+                <select value="{{ item.headSize }}" onChange="{{ item.setAllSize }}" title="{{ item.sizeTitle }}" data-stitch-size-all style="font-size:12px; padding:4px 6px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;">
+                  <sc-for list="{{ item.headSizeOptions }}" as="opt" hint-placeholder-count="0"><option value="{{ opt.value }}">{{ opt.label }}</option></sc-for>
+                </select>
+                <button onClick="{{ item.rotateAllLeft }}" title="{{ item.rotLeftTitle }}" data-stitch-rot-all-left style="font-size:15px; line-height:1; padding:4px 7px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;" style-hover="border-color:#5980a6; color:#5980a6;">⟲</button>
+                <button onClick="{{ item.rotateAllRight }}" title="{{ item.rotRightTitle }}" data-stitch-rot-all-right style="font-size:15px; line-height:1; padding:4px 7px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;" style-hover="border-color:#5980a6; color:#5980a6;">⟳</button>
+                <button onClick="{{ item.remove }}" title="Remove" style="background:none; border:none; color:rgba(29,31,32,0.4); font-size:20px; cursor:pointer; line-height:1;" style-hover="color:#8a2c2c;">×</button>
               </div>
-              <button onClick="{{ item.remove }}" title="Remove" style="background:none; border:none; color:rgba(29,31,32,0.4); font-size:20px; cursor:pointer; line-height:1;" style-hover="color:#8a2c2c;">×</button>
+
+              <div style="display:flex; align-items:center; gap:6px;">
+                <sc-if value="{{ item.hasPager }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ item.prevPages }}" disabled="{{ item.atStart }}" title="Previous pages" data-stitch-prev style="align-self:stretch; width:30px; flex-shrink:0; font-size:22px; line-height:1; border:1px solid rgba(29,31,32,0.16); background:#fff; color:#1d1f20; cursor:{{ item.prevCursor }}; opacity:{{ item.prevOpacity }};" style-hover="border-color:#5980a6;">‹</button>
+                </sc-if>
+                <div style="flex:1; min-width:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px;">
+                  <sc-for list="{{ item.cards }}" as="card" hint-placeholder-count="0">
+                    <div data-stitch-card="{{ card.cardId }}" style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:8px; border:1px solid rgba(29,31,32,0.1); background:#f7f7f8; opacity:{{ card.opacity }}; min-width:0;">
+                      <div style="width:100%; height:{{ card.boxH }}px; display:flex; align-items:center; justify-content:center;">
+                        <div style="width:{{ card.paperW }}px; height:{{ card.paperH }}px; background:#fff; border:1px solid rgba(29,31,32,0.22); box-shadow:0 1px 3px rgba(29,31,32,0.12); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative;">
+                          <sc-if value="{{ card.hasThumb }}" hint-placeholder-val="{{ false }}">
+                            <img src="{{ card.thumb }}" draggable="{{ false }}" style="width:{{ card.imgFill }}; height:{{ card.imgFill }}; object-fit:contain; display:block;" />
+                          </sc-if>
+                          <sc-if value="{{ card.isText }}" hint-placeholder-val="{{ false }}">
+                            <div style="position:absolute; inset:0; padding:8%; font-size:7px; line-height:1.3; overflow:hidden; text-align:left; color:#1d1f20; word-break:break-word;">{{ card.snippet }}</div>
+                          </sc-if>
+                          <sc-if value="{{ card.loading }}" hint-placeholder-val="{{ false }}">
+                            <div style="font-size:10px; color:rgba(29,31,32,0.45);">loading…</div>
+                          </sc-if>
+                        </div>
+                      </div>
+                      <div style="font-size:11px; line-height:1.3; text-align:center; color:rgba(29,31,32,0.75);">
+                        <span style="font-weight:600;">{{ card.title }}</span> {{ card.detected }}
+                        <sc-if value="{{ card.changed }}" hint-placeholder-val="{{ false }}"><span style="color:#5980a6; font-weight:600;"> → {{ card.target }}</span></sc-if>
+                      </div>
+                      <sc-if value="{{ card.hasControls }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex; align-items:center; justify-content:center; gap:6px; flex-wrap:wrap;">
+                          <input type="checkbox" checked="{{ card.include }}" onChange="{{ card.toggle }}" title="Include this page" data-stitch-page-check style="width:16px; height:16px; cursor:pointer; accent-color:#5980a6;" />
+                          <select value="{{ card.size }}" onChange="{{ card.setSize }}" title="Paper size for this page" data-stitch-page-size style="font-size:11px; padding:3px 4px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer; max-width:110px;">
+                            <sc-for list="{{ card.sizeOptions }}" as="opt" hint-placeholder-count="0"><option value="{{ opt.value }}">{{ opt.label }}</option></sc-for>
+                          </select>
+                          <button onClick="{{ card.rotLeft }}" title="Rotate left 90°" data-stitch-page-rot-left style="font-size:13px; line-height:1; padding:3px 6px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;" style-hover="border-color:#5980a6; color:#5980a6;">⟲</button>
+                          <button onClick="{{ card.rotRight }}" title="Rotate right 90°" data-stitch-page-rot-right style="font-size:13px; line-height:1; padding:3px 6px; border:1px solid rgba(29,31,32,0.16); background:#fff; cursor:pointer;" style-hover="border-color:#5980a6; color:#5980a6;">⟳</button>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ item.hasPager }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ item.nextPages }}" disabled="{{ item.atEnd }}" title="Next pages" data-stitch-next style="align-self:stretch; width:30px; flex-shrink:0; font-size:22px; line-height:1; border:1px solid rgba(29,31,32,0.16); background:#fff; color:#1d1f20; cursor:{{ item.nextCursor }}; opacity:{{ item.nextOpacity }};" style-hover="border-color:#5980a6;">›</button>
+                </sc-if>
+              </div>
+              <sc-if value="{{ item.hasPager }}" hint-placeholder-val="{{ false }}">
+                <div data-stitch-range style="font-size:11px; text-align:center; color:rgba(29,31,32,0.6);">{{ item.rangeLabel }}</div>
+              </sc-if>
             </div>
           </sc-for>
         </div>
@@ -133,6 +171,39 @@
 </div>
 </x-dc>
 <script type="text/x-dc" data-dc-script>
+// Paper sizes in PDF points, portrait (same table as pdfEngine.js).
+const PAPER = {
+  '8.5x11': { w: 612, h: 792, label: '8.5×11' },
+  '8.5x14': { w: 612, h: 1008, label: '8.5×14' },
+  '11x17': { w: 792, h: 1224, label: '11×17' },
+  '24x36': { w: 1728, h: 2592, label: '24×36' },
+  'A4': { w: 595.28, h: 841.89, label: 'A4' },
+  'A3': { w: 841.89, h: 1190.55, label: 'A3' },
+};
+// Extra sizes we can name when we see them, but don't offer.
+const KNOWN = { ...PAPER, '18x24': { w: 1296, h: 1728, label: '18×24' }, '12x18': { w: 864, h: 1296, label: '12×18' }, 'A2': { w: 1190.55, h: 1683.78, label: 'A2' }, 'A1': { w: 1683.78, h: 2383.94, label: 'A1' }, 'A5': { w: 419.53, h: 595.28, label: 'A5' } };
+const PAPER_OPTIONS = Object.keys(PAPER).map((k) => ({ value: k, label: PAPER[k].label }));
+const PER_VIEW = 2;          // pages shown at a time per file
+const THUMB_PX = 280;        // longest side of a rendered thumbnail
+const BOX = 150;             // preview box on the card
+
+const normRot = (a) => (((Math.round((a || 0) / 90) * 90) % 360) + 360) % 360;
+// Name a size in points: "11×17 L", or inches when it isn't a known paper.
+function sizeName(w, h) {
+  const o = w > h ? 'L' : 'P';
+  const lo = Math.min(w, h), hi = Math.max(w, h);
+  for (const k of Object.keys(KNOWN)) {
+    if (Math.abs(KNOWN[k].w - lo) <= 4 && Math.abs(KNOWN[k].h - hi) <= 4) return KNOWN[k].label + ' ' + o;
+  }
+  const inch = (v) => String(Math.round(v / 72 * 10) / 10);
+  return inch(lo) + '×' + inch(hi) + '″ ' + o;
+}
+// Paper a size key gives to content cw x ch (already turned): orientation follows the content.
+function paperFor(size, cw, ch) {
+  const p = PAPER[size] || PAPER['8.5x11'];
+  return cw > ch ? { w: p.h, h: p.w } : { w: p.w, h: p.h };
+}
+
 class Component extends DCLogic {
   state = {
     items: [],
@@ -152,6 +223,11 @@ class Component extends DCLogic {
   textCounter = 1;
   itemIdCounter = 1;
   draggingId = null;
+  thumbs = new Map();      // 'id:page' -> canvas at the page's own rotation
+  turned = new Map();      // 'id:page@rot' -> data URL
+  pending = new Set();
+  pdfDocs = new Map();     // id -> Promise<pdf.js document>
+  thumbBusy = false;
   lastMinuteKey = '';
   interval = null;
 
@@ -196,18 +272,33 @@ class Component extends DCLogic {
           const blob = new Blob([item.data], { type: item.imageType === 'jpg' ? 'image/jpeg' : 'image/png' });
           item.objectUrl = URL.createObjectURL(blob);
         }
-        return item;
+        return this.migrateItem(item);
       });
       this.fileCounter = data.fileCounter || this.fileCounter;
       this.textCounter = data.textCounter || this.textCounter;
       this.itemIdCounter = data.itemIdCounter || this.itemIdCounter;
-      this.setState({ items, filename: data.filename || this.state.filename, userEditedFilename: !!data.userEditedFilename });
+      this.setState({ items, filename: data.filename || this.state.filename, userEditedFilename: !!data.userEditedFilename }, () => {
+        items.forEach((i) => { if (i.type === 'pdf' && i.data) this._detectPdfItem(i.id, i.data); });
+      });
     } catch (err) { console.warn('Load failed', err); }
+  }
+
+  // Files saved before page previews had pageSize + orientation per file.
+  migrateItem(item) {
+    if (item.type === 'pdf') {
+      if (!('pages' in item)) item.pages = null;
+      if (item.view == null) item.view = 0;
+    } else {
+      if (!item.size) item.size = PAPER[item.pageSize] ? item.pageSize : '8.5x11';
+      if (item.rot == null) item.rot = item.type === 'text' && item.orientation === 'landscape' ? 90 : 0;
+    }
+    delete item.pageSize; delete item.orientation;
+    return item;
   }
 
   clearPage = () => {
     if (!confirm('Clear all dropped files and inputs? This cannot be undone.')) return;
-    this.state.items.forEach((i) => { if (i.objectUrl) URL.revokeObjectURL(i.objectUrl); });
+    this.state.items.forEach((i) => { if (i.objectUrl) URL.revokeObjectURL(i.objectUrl); this.forgetItem(i.id); });
     localStorage.removeItem(this.STORAGE_KEY);
     this.setState({ items: [], userEditedFilename: false, filename: this.buildAutoName() });
   };
@@ -244,7 +335,114 @@ class Component extends DCLogic {
     window.removeEventListener('resize', this._onResize);
   }
 
-  componentDidUpdate() {}
+  componentDidUpdate() { this.ensureThumbs(); }
+
+  forgetItem(id) {
+    const pre = id + ':';
+    for (const k of [...this.thumbs.keys()]) if (k.startsWith(pre)) this.thumbs.delete(k);
+    for (const k of [...this.turned.keys()]) if (k.startsWith(pre)) this.turned.delete(k);
+    const doc = this.pdfDocs.get(id);
+    if (doc) { this.pdfDocs.delete(id); doc.then((d) => d.destroy()).catch(() => {}); }
+  }
+
+  getPdfDoc(id, data) {
+    if (!this.pdfDocs.has(id)) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      this.pdfDocs.set(id, window.pdfjsLib.getDocument({ data: data.slice(0) }).promise);
+    }
+    return this.pdfDocs.get(id);
+  }
+
+  // Thumbnails are made only for the pages on show, one at a time.
+  ensureThumbs() {
+    const want = [];
+    for (const item of this.state.items) {
+      if (item.type === 'pdf' && Array.isArray(item.pages)) {
+        for (let p = item.view; p < Math.min(item.view + PER_VIEW, item.pages.length); p++) want.push({ item, page: p });
+      } else if (item.type === 'image' && item.objectUrl) {
+        want.push({ item, page: 0 });
+      }
+    }
+    const todo = want.filter(({ item, page }) => !this.thumbs.has(item.id + ':' + page) && !this.pending.has(item.id + ':' + page));
+    if (!todo.length || this.thumbBusy) return;
+    this.thumbBusy = true;
+    (async () => {
+      for (const { item, page } of todo) {
+        const key = item.id + ':' + page;
+        if (!this.state.items.some((i) => i.id === item.id)) continue;
+        this.pending.add(key);
+        try {
+          const canvas = item.type === 'pdf' ? await this.renderPdfThumb(item, page) : await this.renderImageThumb(item);
+          if (canvas) this.thumbs.set(key, canvas);
+        } catch (err) { console.warn('Preview failed', err); }
+        this.pending.delete(key);
+        this.forceUpdate();
+      }
+      this.thumbBusy = false;
+      this.ensureThumbs();
+    })();
+  }
+
+  async renderPdfThumb(item, index) {
+    const doc = await this.getPdfDoc(item.id, item.data);
+    const page = await doc.getPage(index + 1);
+    const vp1 = page.getViewport({ scale: 1 });
+    const vp = page.getViewport({ scale: THUMB_PX / Math.max(vp1.width, vp1.height) });
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(vp.width));
+    canvas.height = Math.max(1, Math.round(vp.height));
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    page.cleanup();
+    return canvas;
+  }
+
+  async renderImageThumb(item) {
+    const img = new Image();
+    img.src = item.objectUrl;
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+    const k = Math.min(1, THUMB_PX / Math.max(img.naturalWidth, img.naturalHeight));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(img.naturalWidth * k));
+    canvas.height = Math.max(1, Math.round(img.naturalHeight * k));
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    if (!item.imgW) this.patchItem(item.id, { imgW: img.naturalWidth, imgH: img.naturalHeight });
+    return canvas;
+  }
+
+  // A thumbnail turned by rot (clockwise), cached.
+  turnedThumb(key, rot) {
+    const base = this.thumbs.get(key);
+    if (!base) return null;
+    const tk = key + '@' + rot;
+    if (!this.turned.has(tk)) {
+      let url;
+      if (!rot) url = base.toDataURL('image/png');
+      else {
+        const c = document.createElement('canvas');
+        const odd = rot % 180 !== 0;
+        c.width = odd ? base.height : base.width;
+        c.height = odd ? base.width : base.height;
+        const ctx = c.getContext('2d');
+        ctx.translate(c.width / 2, c.height / 2);
+        ctx.rotate(rot * Math.PI / 180);
+        ctx.drawImage(base, -base.width / 2, -base.height / 2);
+        url = c.toDataURL('image/png');
+      }
+      this.turned.set(tk, url);
+    }
+    return this.turned.get(tk);
+  }
+
+  patchItem(id, patch) {
+    this.setState((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, ...(typeof patch === 'function' ? patch(i) : patch) } : i)) }), () => this.persist());
+  }
+
+  patchPages(id, fn) {
+    this.patchItem(id, (i) => (Array.isArray(i.pages) ? { pages: i.pages.map(fn) } : {}));
+  }
 
   pad(n) { return String(n).padStart(2, '0'); }
 
@@ -353,26 +551,40 @@ class Component extends DCLogic {
     } catch(e) { return 0; }
   }
 
+  // Reads every page's own size and rotation; keeps any settings already made.
   async _detectPdfItem(id, data) {
     try {
       if (!window.pdfjsLib) return;
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      const pdf = await window.pdfjsLib.getDocument({ data: data.slice(0) }).promise;
-      const sd = await this._detectSourceDpi(pdf);
-      this.setState((s) => ({ items: s.items.map((i) => i.id === id ? { ...i, sourceDpi: sd } : i) }), () => this.persist());
-    } catch(e) { /* ignore */ }
+      const pdf = await this.getPdfDoc(id, data);
+      const found = [];
+      for (let n = 1; n <= pdf.numPages; n++) {
+        const page = await pdf.getPage(n);
+        const [x1, y1, x2, y2] = page.view;
+        found.push({ w: Math.abs(x2 - x1), h: Math.abs(y2 - y1), rot0: normRot(page.rotate) });
+      }
+      const cur = this.state.items.find((i) => i.id === id);
+      const sd = cur && cur.sourceDpi != null ? cur.sourceDpi : await this._detectSourceDpi(pdf);
+      this.patchItem(id, (i) => {
+        const old = Array.isArray(i.pages) && i.pages.length === found.length ? i.pages : null;
+        const pages = found.map((f, k) => (old ? { ...old[k], ...f } : { ...f, include: true, size: 'original', rot: 0 }));
+        return { pages, sourceDpi: sd, view: Math.min(i.view || 0, Math.max(0, pages.length - PER_VIEW)) };
+      });
+    } catch (e) {
+      console.warn('Could not read PDF pages', e);
+      this.patchItem(id, (i) => ({ sourceDpi: i.sourceDpi == null ? 0 : i.sourceDpi, pages: Array.isArray(i.pages) ? i.pages : [] }));
+    }
   }
 
   async processFile(file) {
     if (file.type === 'application/pdf') {
       const data = await file.arrayBuffer();
       const id = this.itemIdCounter++;
-      this.addItem({ id, type: 'pdf', name: 'FILE ' + this.fileCounter++, data, pageSize: '8.5x11', orientation: 'portrait', included: true, sourceDpi: null });
+      this.addItem({ id, type: 'pdf', name: 'FILE ' + this.fileCounter++, data, pages: null, view: 0, included: true, sourceDpi: null });
       this._detectPdfItem(id, data);
     } else if (file.type.startsWith('image/')) {
       await this.processImageFile(file);
     } else if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
-      this.addItem({ id: this.itemIdCounter++, type: 'text', name: 'FILE ' + this.fileCounter++, content: await file.text(), pageSize: '8.5x11', orientation: 'portrait', included: true });
+      this.addItem({ id: this.itemIdCounter++, type: 'text', name: 'FILE ' + this.fileCounter++, content: await file.text(), size: '8.5x11', rot: 0, included: true });
     } else {
       this.setState({}); // no-op, unsupported
       alert('Unsupported file type: ' + file.name);
@@ -383,7 +595,7 @@ class Component extends DCLogic {
     const name = customName || ('FILE ' + this.fileCounter++);
     if (file.type === 'image/jpeg' || file.type === 'image/png') {
       const data = new Uint8Array(await file.arrayBuffer());
-      this.addItem({ id: this.itemIdCounter++, type: 'image', name, data, imageType: file.type === 'image/jpeg' ? 'jpg' : 'png', pageSize: '8.5x11', orientation: 'portrait', included: true });
+      this.addItem({ id: this.itemIdCounter++, type: 'image', name, data, imageType: file.type === 'image/jpeg' ? 'jpg' : 'png', size: '8.5x11', rot: 0, included: true });
       return;
     }
     const url = URL.createObjectURL(file);
@@ -396,7 +608,7 @@ class Component extends DCLogic {
     canvas.getContext('2d').drawImage(img, 0, 0);
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
     const data = new Uint8Array(await blob.arrayBuffer());
-    this.addItem({ id: this.itemIdCounter++, type: 'image', name, data, imageType: 'png', pageSize: '8.5x11', orientation: 'portrait', included: true });
+    this.addItem({ id: this.itemIdCounter++, type: 'image', name, data, imageType: 'png', size: '8.5x11', rot: 0, included: true, imgW: img.width, imgH: img.height });
     URL.revokeObjectURL(url);
   }
 
@@ -412,7 +624,7 @@ class Component extends DCLogic {
     const text = this.state.textInput.trim();
     if (!text) return;
     const label = 'INPUT ' + this.textCounter++;
-    this.addItem({ id: this.itemIdCounter++, type: 'text', name: label, content: text, pageSize: '8.5x11', orientation: 'portrait', included: true });
+    this.addItem({ id: this.itemIdCounter++, type: 'text', name: label, content: text, size: '8.5x11', rot: 0, included: true });
     this.setState({ textInput: '' });
   };
 
@@ -435,20 +647,112 @@ class Component extends DCLogic {
     this.setState((s) => {
       const item = s.items.find((i) => i.id === id);
       if (item && item.objectUrl) URL.revokeObjectURL(item.objectUrl);
+      this.forgetItem(id);
       return { items: s.items.filter((i) => i.id !== id) };
     }, () => this.persist());
   }
 
-  toggleIncluded(id, checked) {
-    this.setState((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, included: checked } : i)) }), () => this.persist());
+  // File header: checkbox, size and rotate act on every page of the file.
+  toggleAll(id, checked) {
+    this.patchItem(id, (i) => (i.type === 'pdf' && Array.isArray(i.pages)
+      ? { included: checked, pages: i.pages.map((p) => ({ ...p, include: checked })) }
+      : { included: checked }));
   }
 
-  setPageSize(id, val) {
-    this.setState((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, pageSize: val } : i)) }), () => this.persist());
+  setAllSize(id, val) {
+    if (val === 'mixed') return;
+    this.patchItem(id, (i) => (i.type === 'pdf'
+      ? (Array.isArray(i.pages) ? { pages: i.pages.map((p) => ({ ...p, size: val })) } : {})
+      : { size: val }));
   }
 
-  setOrientation(id, val) {
-    this.setState((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, orientation: val } : i)) }), () => this.persist());
+  rotateAll(id, delta) {
+    this.patchItem(id, (i) => (i.type === 'pdf'
+      ? (Array.isArray(i.pages) ? { pages: i.pages.map((p) => ({ ...p, rot: normRot(p.rot + delta) })) } : {})
+      : { rot: normRot(i.rot + delta) }));
+  }
+
+  setPage(id, index, patch) {
+    this.patchPages(id, (p, k) => (k === index ? { ...p, ...(typeof patch === 'function' ? patch(p) : patch) } : p));
+  }
+
+  stepPages(id, dir) {
+    this.patchItem(id, (i) => {
+      const n = Array.isArray(i.pages) ? i.pages.length : 0;
+      const last = Math.max(0, n - PER_VIEW);
+      return { view: Math.max(0, Math.min(last, (i.view || 0) + dir * PER_VIEW)) };
+    });
+  }
+
+  includedPageCount(items) {
+    return items.reduce((n, i) => n + (i.type === 'pdf'
+      ? (Array.isArray(i.pages) ? i.pages.filter((p) => p.include).length : (i.included ? 1 : 0))
+      : (i.included ? 1 : 0)), 0);
+  }
+
+  // Preview box: the paper shape the page will end up on, inside BOX x BOX.
+  cardBox(pw, ph) {
+    const k = BOX / Math.max(pw, ph);
+    return { paperW: Math.max(8, Math.round(pw * k)), paperH: Math.max(8, Math.round(ph * k)) };
+  }
+
+  buildCards(item) {
+    if (item.type === 'pdf') {
+      if (!Array.isArray(item.pages)) {
+        return [{ cardId: item.id + ':0', title: 'Reading pages…', detected: '', changed: false, target: '', loading: true, hasThumb: false, isText: false, thumb: '', imgFill: '100%', hasControls: false, opacity: 1, boxH: BOX, ...this.cardBox(612, 792), include: true, size: 'original', sizeOptions: [] }];
+      }
+      const cards = [];
+      for (let k = item.view; k < Math.min(item.view + PER_VIEW, item.pages.length); k++) {
+        const p = item.pages[k];
+        const r0 = normRot(p.rot0);
+        const vw0 = r0 % 180 ? p.h : p.w, vh0 = r0 % 180 ? p.w : p.h;     // as the file shows it
+        const rot = normRot(p.rot);
+        const cw = rot % 180 ? vh0 : vw0, ch = rot % 180 ? vw0 : vh0;   // after the user's turn
+        const original = !p.size || p.size === 'original';
+        const paper = original ? { w: cw, h: ch } : paperFor(p.size, cw, ch);
+        const thumb = this.turnedThumb(item.id + ':' + k, rot);
+        cards.push({
+          cardId: item.id + ':' + k,
+          title: 'PAGE ' + (k + 1),
+          detected: sizeName(vw0, vh0),
+          changed: !original || rot !== 0,
+          target: sizeName(paper.w, paper.h) + (rot ? ' · turned ' + rot + '°' : ''),
+          thumb: thumb || '', hasThumb: !!thumb, loading: !thumb, isText: false,
+          imgFill: '100%',
+          ...this.cardBox(paper.w, paper.h), boxH: BOX,
+          opacity: p.include ? 1 : 0.4,
+          hasControls: true,
+          include: !!p.include,
+          size: original ? 'original' : p.size,
+          sizeOptions: [{ value: 'original', label: 'Original' }, ...PAPER_OPTIONS],
+          toggle: (e) => this.setPage(item.id, k, { include: e.target.checked }),
+          setSize: (e) => this.setPage(item.id, k, { size: e.target.value }),
+          rotLeft: () => this.setPage(item.id, k, (q) => ({ rot: normRot(q.rot - 90) })),
+          rotRight: () => this.setPage(item.id, k, (q) => ({ rot: normRot(q.rot + 90) })),
+        });
+      }
+      return cards;
+    }
+    const rot = normRot(item.rot);
+    if (item.type === 'image') {
+      const w = item.imgW || 0, h = item.imgH || 0;
+      const cw = rot % 180 ? h : w, ch = rot % 180 ? w : h;
+      const paper = w && h ? paperFor(item.size, cw, ch) : paperFor(item.size, 1, 2);
+      const thumb = this.turnedThumb(item.id + ':0', rot);
+      return [{
+        cardId: item.id + ':0', title: 'IMAGE', detected: w && h ? (w + '×' + h + ' px ' + (w > h ? 'L' : 'P')) : '',
+        changed: true, target: sizeName(paper.w, paper.h) + (rot ? ' · turned ' + rot + '°' : ''),
+        thumb: thumb || '', hasThumb: !!thumb, loading: !thumb, isText: false, imgFill: '92%',
+        ...this.cardBox(paper.w, paper.h), boxH: BOX, opacity: item.included ? 1 : 0.4, hasControls: false,
+      }];
+    }
+    const paper = paperFor(item.size, rot % 180 ? 2 : 1, rot % 180 ? 1 : 2);
+    const snippet = item.content.slice(0, 400) + (item.content.length > 400 ? '…' : '');
+    return [{
+      cardId: item.id + ':0', title: 'TEXT', detected: '', changed: true, target: sizeName(paper.w, paper.h),
+      thumb: '', hasThumb: false, loading: false, isText: true, snippet, imgFill: '100%',
+      ...this.cardBox(paper.w, paper.h), boxH: BOX, opacity: item.included ? 1 : 0.4, hasControls: false,
+    }];
   }
 
   onDragStart(id, e) {
@@ -472,7 +776,7 @@ class Component extends DCLogic {
   }
 
   async generate() {
-    if (this.state.generating || this.state.items.filter((i) => i.included).length === 0) return;
+    if (this.state.generating || this.includedPageCount(this.state.items) === 0) return;
     this.setState({ generating: true });
     try {
       const { generatePDF } = await import('./pdfEngine.js');
@@ -492,13 +796,8 @@ class Component extends DCLogic {
 
   renderVals() {
     const { items, textInput, filename, generating, dragOver, isMobile } = this.state;
-    const includedCount = items.filter((i) => i.included).length;
+    const includedCount = this.includedPageCount(items);
     const disabled = generating || includedCount === 0;
-    const getDims = (size, orientation) => {
-      const sizes = { '8.5x11': { w: 612, h: 792 }, '11x17': { w: 792, h: 1224 } };
-      const s = sizes[size] || sizes['8.5x11'];
-      return orientation === 'landscape' ? { w: s.h, h: s.w } : { w: s.w, h: s.h };
-    };
     return {
       isMobile,
       isDesktopHeader: !isMobile,
@@ -559,26 +858,51 @@ class Component extends DCLogic {
       })(),
       clearPage: this.clearPage,
       items: items.map((item) => {
-        const dims = getDims(item.pageSize, item.orientation);
-        const aspect = dims.w / dims.h;
-        const previewHeight = Math.round(64 / aspect) + 'px';
-        const snippet = item.type === 'text' ? item.content.replace(/\n/g, ' ').slice(0, 60) + (item.content.length > 60 ? '…' : '') : '';
+        const isPdf = item.type === 'pdf';
+        const pages = isPdf && Array.isArray(item.pages) ? item.pages : null;
+        const n = pages ? pages.length : 0;
+        const on = pages ? pages.filter((p) => p.include).length : 0;
+        const view = item.view || 0;
+        let headSize, headSizeOptions;
+        if (isPdf) {
+          const sizes = pages ? [...new Set(pages.map((p) => p.size || 'original'))] : ['original'];
+          headSize = sizes.length === 1 ? sizes[0] : 'mixed';
+          headSizeOptions = [...(headSize === 'mixed' ? [{ value: 'mixed', label: 'Mixed sizes' }] : []), { value: 'original', label: 'Original' }, ...PAPER_OPTIONS];
+        } else {
+          headSize = item.size;
+          headSizeOptions = PAPER_OPTIONS;
+        }
         return {
-          ...item,
-          objectUrl: item.objectUrl || 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
-          hasObjectUrl: !!item.objectUrl,
-          previewHeight,
-          isImage: item.type === 'image',
-          isPdf: item.type === 'pdf',
-          isText: item.type === 'text',
-          snippet,
-          typeLabel: item.type === 'pdf'
-            ? (item.sourceDpi === null ? 'PDF · detecting…' : item.sourceDpi === 0 ? 'PDF · Vector' : `PDF · ~${item.sourceDpi} DPI`)
+          id: item.id,
+          name: item.name,
+          allChecked: isPdf && pages ? on === n && n > 0 : !!item.included,
+          checkTitle: isPdf ? 'Include or leave out every page' : 'Include this file',
+          countLabel: isPdf
+            ? (pages ? (n + (n === 1 ? ' page' : ' pages') + (on < n ? ' · ' + on + ' included' : '')) : 'Reading pages…')
+            : (item.included ? '1 page' : 'Left out'),
+          typeLabel: isPdf
+            ? (item.sourceDpi === null || item.sourceDpi === undefined ? 'PDF · detecting…' : item.sourceDpi === 0 ? 'PDF · Vector' : `PDF · ~${item.sourceDpi} DPI`)
             : item.type.toUpperCase(),
-          pageLabel: `${item.pageSize} ${item.orientation[0].toUpperCase()}`,
-          toggleIncluded: (e) => this.toggleIncluded(item.id, e.target.checked),
-          setPageSize: (e) => this.setPageSize(item.id, e.target.value),
-          setOrientation: (e) => this.setOrientation(item.id, e.target.value),
+          headSize,
+          headSizeOptions,
+          sizeTitle: isPdf ? 'Paper size for every page (Original keeps each page as it is)' : 'Paper size (orientation follows the picture)',
+          rotLeftTitle: isPdf ? 'Rotate every page left 90°' : 'Rotate left 90°',
+          rotRightTitle: isPdf ? 'Rotate every page right 90°' : 'Rotate right 90°',
+          cards: this.buildCards(item),
+          hasPager: n > PER_VIEW,
+          atStart: view <= 0,
+          atEnd: view + PER_VIEW >= n,
+          prevCursor: view <= 0 ? 'default' : 'pointer',
+          nextCursor: view + PER_VIEW >= n ? 'default' : 'pointer',
+          prevOpacity: view <= 0 ? 0.3 : 1,
+          nextOpacity: view + PER_VIEW >= n ? 0.3 : 1,
+          rangeLabel: n ? `Pages ${view + 1}–${Math.min(view + PER_VIEW, n)} of ${n}` : '',
+          prevPages: () => this.stepPages(item.id, -1),
+          nextPages: () => this.stepPages(item.id, 1),
+          toggleAll: (e) => this.toggleAll(item.id, e.target.checked),
+          setAllSize: (e) => this.setAllSize(item.id, e.target.value),
+          rotateAllLeft: () => this.rotateAll(item.id, -90),
+          rotateAllRight: () => this.rotateAll(item.id, 90),
           remove: () => this.removeItem(item.id),
           onDragStart: (e) => this.onDragStart(item.id, e),
           onDrop: (e) => { e.preventDefault(); this.onDropItem(item.id); },
