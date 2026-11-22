@@ -84,7 +84,7 @@ export async function buildPDF(items) {
       const srcDoc = await PDFDocument.load(item.data);
       // Pages read before per-page settings existed: take them all, as they are.
       const pages = Array.isArray(item.pages)
-        ? item.pages.map((p, index) => ({ ...p, index }))
+        ? item.pages.map((p, k) => ({ ...p, index: p.src != null ? p.src : k })) // src: page number in the file; array order = stitch order
         : srcDoc.getPageIndices().map((index) => ({ index, include: true, size: 'original', rot: 0 }));
       const keep = pages.filter((p) => p.include);
       // Untouched size: copy the page itself (lossless), only its rotation changes.
